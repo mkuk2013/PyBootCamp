@@ -1,0 +1,31 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# env files
+.env
+.env.local
+.env*.local
+
+# logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# DB
+local.db
+local.db-*
+*.sqlite
+*.sqlite-journal
+
+# drizzle
+drizzle/meta/_journal.json.bak

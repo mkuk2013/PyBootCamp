@@ -1,0 +1,140 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 255 255 255;
+  --foreground: 17 24 39;
+}
+
+.dark {
+  --background: 9 11 17;
+  --foreground: 241 245 249;
+}
+
+html,
+body {
+  background-color: rgb(var(--background));
+  color: rgb(var(--foreground));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv11", "ss01", "ss03";
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Selection */
+::selection {
+  background: rgba(55, 118, 171, 0.25);
+  color: inherit;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(120, 120, 120, 0.35);
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 120, 120, 0.55);
+  background-clip: padding-box;
+}
+
+/* ---------- Custom utilities ---------- */
+@layer utilities {
+  /* Python-brand gradient text */
+  .text-py-gradient {
+    background-image: linear-gradient(
+      135deg,
+      #3776ab 0%,
+      #4f9ad0 40%,
+      #ffd43b 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  /* Animated shimmer text (for buttons / headlines) */
+  .text-shimmer {
+    background: linear-gradient(
+      90deg,
+      #3776ab 0%,
+      #4f9ad0 25%,
+      #ffd43b 50%,
+      #4f9ad0 75%,
+      #3776ab 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: shimmer 4s linear infinite;
+  }
+
+  /* Subtle dotted background */
+  .bg-dot-grid {
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      rgba(0, 0, 0, 0.08) 1px,
+      transparent 0
+    );
+    background-size: 24px 24px;
+  }
+  .dark .bg-dot-grid {
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      rgba(255, 255, 255, 0.08) 1px,
+      transparent 0
+    );
+  }
+
+  /* Soft "noise" overlay used to add texture to gradients */
+  .bg-noise {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  /* Glass card */
+  .glass {
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(14px) saturate(180%);
+    -webkit-backdrop-filter: blur(14px) saturate(180%);
+  }
+  .dark .glass {
+    background: rgba(15, 23, 42, 0.55);
+  }
+
+  /* Conic gradient ring (Python-themed) */
+  .ring-py-conic {
+    background: conic-gradient(
+      from 180deg at 50% 50%,
+      #3776ab,
+      #4f9ad0,
+      #ffd43b,
+      #3776ab
+    );
+  }
+}
+
+/* Reduced motion safety */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
