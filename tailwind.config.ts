@@ -62,7 +62,9 @@ const config: Config = {
         },
         "progress-slide": {
           "0%": { transform: "translateX(-100%)" },
-          "100%": { transform: "translateX(300%)" },
+          "50%": { transform: "translateX(100%)" },
+          "50.01%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(-100%)" },
         },
         "dot-bounce": {
           "0%, 80%, 100%": { transform: "translateY(0)", opacity: "0.4" },
