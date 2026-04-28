@@ -56,12 +56,27 @@ const config: Config = {
           "33%": { transform: "translate(20px,-30px) scale(1.05)" },
           "66%": { transform: "translate(-15px,15px) scale(0.95)" },
         },
+        "spin-slow": {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(360deg)" },
+        },
+        "progress-slide": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(300%)" },
+        },
+        "dot-bounce": {
+          "0%, 80%, 100%": { transform: "translateY(0)", opacity: "0.4" },
+          "40%": { transform: "translateY(-6px)", opacity: "1" },
+        },
       },
       animation: {
         "fade-in-up": "fade-in-up .6s ease-out both",
         "py-float": "py-float 6s ease-in-out infinite",
         shimmer: "shimmer 3s linear infinite",
         blob: "blob 12s ease-in-out infinite",
+        "spin-slow": "spin-slow 3s linear infinite",
+        "progress-slide": "progress-slide 1.4s cubic-bezier(0.4,0,0.2,1) infinite",
+        "dot-bounce": "dot-bounce 1.2s ease-in-out infinite",
       },
       boxShadow: {
         glow: "0 0 40px -10px rgba(55, 118, 171, 0.5)",

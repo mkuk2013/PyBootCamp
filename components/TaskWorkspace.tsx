@@ -13,6 +13,7 @@ import {
   XCircle,
   Clock,
   Terminal,
+  TerminalSquare,
   Sparkles,
   ChevronLeft,
   ChevronRight,
@@ -22,9 +23,16 @@ import {
   BookOpen,
   ScrollText,
   FileCode2,
+  Copy,
+  Check,
+  Maximize2,
+  Minimize2,
+  Save,
 } from "lucide-react";
 import CodeEditor from "@/components/CodeEditor";
 import MarkdownContent from "@/components/MarkdownContent";
+import SubmissionHistory from "@/components/SubmissionHistory";
+import Confetti from "@/components/Confetti";
 import {
   getPyodide,
   runPythonInBrowser,
@@ -50,6 +58,13 @@ type Props = {
   initiallyCompleted: boolean;
   prevTaskId: number | null;
   nextTaskId: number | null;
+  /** Set when this is the LAST task in the module and another module follows.
+   *  Used to render a "Next module" CTA after the user passes. */
+  nextModuleId: number | null;
+  nextModuleTitle: string | null;
+  /** Parent level — used as the fallback "Back to level" target when the user
+   *  finishes the very last module of the level. */
+  levelId: number | null;
   position: number;
   total: number;
   moduleContent: string | null;
@@ -57,6 +72,7 @@ type Props = {
 };
 
 type TabKey = "problem" | "theory" | "examples";
+type MobileView = "problem" | "editor" | "output";
 
 const difficultyClass: Record<string, string> = {
   easy: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800",
@@ -70,17 +86,31 @@ export default function TaskWorkspace({
   initiallyCompleted,
   prevTaskId,
   nextTaskId,
+  nextModuleId,
+  nextModuleTitle,
+  levelId,
   position,
   total,
   moduleContent,
   moduleTitle,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>("problem");
+  const [mobileView, setMobileView] = useState<MobileView>("problem");
   const hasTheory = !!(moduleContent && moduleContent.trim().length > 0);
   const hasExamples = !!(task.examples && task.examples.trim().length > 0);
   const router = useRouter();
-  const [code, setCode] = useState(task.starterCode || "# Write your code here\n");
+  const storageKey = `pybc:code:${task.id}`;
+  const starter = task.starterCode || "# Write your code here\n";
+  const [code, setCode] = useState(starter);
   const [output, setOutput] = useState("");
+  /**
+   * stdin fed to the program when the user clicks **Run** (Submit always uses
+   * the test-case inputs, not this). Pre-filled from the first test case so
+   * tasks that use `input()` work out of the box; the user can edit it to
+   * experiment with their own values.
+   */
+  const [customStdin, setCustomStdin] = useState("");
+  const [showStdin, setShowStdin] = useState(false);
   const [running, setRunning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [verdict, setVerdict] = useState<null | "pass" | "fail">(
@@ -89,11 +119,64 @@ export default function TaskWorkspace({
   const [pyReady, setPyReady] = useState(false);
   const [pyLoading, setPyLoading] = useState(true);
   const [pyError, setPyError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [confettiKey, setConfettiKey] = useState(0);
+
+  // Restore saved code from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved && saved !== starter) {
+        setCode(saved);
+      }
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-save (debounced) on code change
+  useEffect(() => {
+    if (code === starter) return;
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(storageKey, code);
+        setSavedAt(Date.now());
+      } catch {
+        /* ignore */
+      }
+    }, 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code]);
 
   // Parse test cases & hints once
   const testCases = useRef<TestCase[]>(parseTestCases(task.testCases));
   const hints = useRef<string[]>(parseHints(task.hints));
   const [hintsRevealed, setHintsRevealed] = useState(0);
+
+  /**
+   * True if at least one test case feeds stdin — i.e. this task uses
+   * `input()`. We use this to auto-open the stdin panel and pre-fill it.
+   */
+  const taskUsesStdin = testCases.current.some(
+    (tc) => typeof tc.input === "string" && tc.input.length > 0
+  );
+
+  // Pre-fill stdin from the first test case + auto-open the panel for tasks
+  // that need user input. Runs once per task.
+  useEffect(() => {
+    if (taskUsesStdin) {
+      const firstInput = testCases.current.find(
+        (tc) => typeof tc.input === "string" && tc.input.length > 0
+      )?.input;
+      if (firstInput !== undefined) setCustomStdin(firstInput);
+      setShowStdin(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task.id]);
 
   // Lazy-load Pyodide on mount
   useEffect(() => {
@@ -125,9 +208,9 @@ export default function TaskWorkspace({
     setRunning(true);
     setOutput("");
     try {
-      // For Run, use the first test case's stdin (if any), else no stdin
-      const firstCase = testCases.current[0];
-      const result = await runPythonInBrowser(code, firstCase?.input ?? "");
+      // For Run, feed the user-editable stdin from the Custom Input panel.
+      // (Submit ignores this and uses each test case's own input.)
+      const result = await runPythonInBrowser(code, customStdin);
       const out =
         result.stderr && result.errored
           ? `\u26a0\ufe0f  Error:\n${result.stderr}`
@@ -191,11 +274,29 @@ export default function TaskWorkspace({
       setVerdict(data.pass ? "pass" : "fail");
 
       if (data.pass) {
+        const wasFirstTime = !initiallyCompleted && verdict !== "pass";
         toast.success(`\u2728 Passed! +${data.score} points`);
         setOutput(
           `\u2705 All ${cases.length} test case${cases.length === 1 ? "" : "s"} passed!\n\nOutput:\n${data.output}`
         );
+        if (wasFirstTime) {
+          setConfettiKey((k) => k + 1);
+        }
         router.refresh();
+
+        // Auto-advance to the next task / module on a fresh pass so the user
+        // can keep their flow without hunting for the Next button.
+        if (wasFirstTime) {
+          if (nextTaskId) {
+            toast("Loading next task…", { icon: "\u27a1\ufe0f" });
+            setTimeout(() => router.push(`/task/${nextTaskId}`), 1600);
+          } else if (nextModuleId) {
+            toast("Module complete — opening next module…", {
+              icon: "\u2728",
+            });
+            setTimeout(() => router.push(`/module/${nextModuleId}`), 2000);
+          }
+        }
       } else {
         toast.error("Output didn't match. Keep going!");
         const failedDetail = data.detail?.find(
@@ -225,15 +326,93 @@ export default function TaskWorkspace({
   }
 
   function onReset() {
-    setCode(task.starterCode || "# Write your code here\n");
+    if (
+      code !== starter &&
+      !confirm("Reset to starter code? Your local changes will be lost.")
+    )
+      return;
+    setCode(starter);
     setOutput("");
     setVerdict(initiallyCompleted ? "pass" : null);
+    try {
+      localStorage.removeItem(storageKey);
+      setSavedAt(null);
+    } catch {
+      /* ignore */
+    }
   }
 
+  async function onCopy() {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("Copy failed");
+    }
+  }
+
+  // Keyboard shortcuts: Ctrl/Cmd+Enter run, Ctrl/Cmd+Shift+Enter submit
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const meta = e.ctrlKey || e.metaKey;
+      if (!meta) return;
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          if (!submitting && !running && pyReady) onSubmit();
+        } else {
+          if (!running && !submitting && pyReady) onRun();
+        }
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code, running, submitting, pyReady]);
+
+  // Auto-switch to output view on mobile when running/submitting
+  useEffect(() => {
+    if (running || submitting) setMobileView("output");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running, submitting]);
+
   return (
+    <>
+      <Confetti show={confettiKey > 0} key={confettiKey} />
+
+      {/* Mobile view switcher (Problem / Editor / Output) */}
+      <div className="mb-4 grid grid-cols-3 gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm lg:hidden dark:border-slate-800 dark:bg-slate-900/80">
+        <MobileViewButton
+          active={mobileView === "problem"}
+          onClick={() => setMobileView("problem")}
+          icon={<FileCode2 className="h-4 w-4" />}
+          label="Problem"
+        />
+        <MobileViewButton
+          active={mobileView === "editor"}
+          onClick={() => setMobileView("editor")}
+          icon={<FileCode2 className="h-4 w-4" />}
+          label="Code"
+        />
+        <MobileViewButton
+          active={mobileView === "output"}
+          onClick={() => setMobileView("output")}
+          icon={<Terminal className="h-4 w-4" />}
+          label="Output"
+          badge={
+            verdict === "pass" ? "✓" : verdict === "fail" ? "✕" : undefined
+          }
+        />
+      </div>
+
     <div className="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
       {/* LEFT: tabbed content panel */}
-      <aside className="space-y-4">
+      <aside
+        className={`space-y-4 ${
+          mobileView === "problem" ? "" : "hidden"
+        } lg:block`}
+      >
         {/* Tab bar */}
         <div className="flex gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
           <TabButton
@@ -445,6 +624,18 @@ export default function TaskWorkspace({
               >
                 Next <ChevronRight className="h-4 w-4" />
               </Link>
+            ) : nextModuleId ? (
+              <Link
+                href={`/module/${nextModuleId}`}
+                title={
+                  nextModuleTitle
+                    ? `Open next module: ${nextModuleTitle}`
+                    : "Open next module"
+                }
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:from-emerald-600 hover:to-teal-600"
+              >
+                Next module <ChevronRight className="h-4 w-4" />
+              </Link>
             ) : (
               <Link
                 href={`/module/${task.moduleId}`}
@@ -465,25 +656,13 @@ export default function TaskWorkspace({
       </aside>
 
       {/* RIGHT: editor + console */}
-      <section className="space-y-4">
-        {/* Editor card */}
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
-          <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-2.5 dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
-              <span className="flex gap-1">
-                <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
-                <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-              </span>
-              <span className="ml-2 font-mono">main.py</span>
-            </div>
-            <PyStatus loading={pyLoading} ready={pyReady} error={pyError} />
-          </div>
-          <CodeEditor value={code} onChange={setCode} height="380px" />
-        </div>
-
-        {/* Action bar */}
-        <div className="flex flex-wrap items-center gap-2">
+      <section
+        className={`space-y-4 ${
+          mobileView !== "problem" ? "" : "hidden"
+        } lg:block`}
+      >
+        {/* Action bar — placed ABOVE editor so Run/Submit are always visible */}
+        <div className="sticky top-2 z-20 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white/90 p-2 shadow-md backdrop-blur dark:border-slate-800 dark:bg-slate-900/90">
           <button
             onClick={onRun}
             disabled={running || submitting || !pyReady}
@@ -520,6 +699,20 @@ export default function TaskWorkspace({
             Reset
           </button>
 
+          <SubmissionHistory taskId={task.id} onRestore={(c) => setCode(c)} />
+
+          {/* Toggle stdin panel button — only show for input-based tasks when panel is hidden */}
+          {taskUsesStdin && !showStdin && (
+            <button
+              onClick={() => setShowStdin(true)}
+              className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 transition hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+              title="Show custom input panel"
+            >
+              <TerminalSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">Input</span>
+            </button>
+          )}
+
           {/* Spacer pushes prev/next to the right */}
           <div className="ml-auto flex items-center gap-1.5">
             {total > 1 && (
@@ -548,6 +741,30 @@ export default function TaskWorkspace({
                   Next task
                   <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
                 </Link>
+              ) : nextModuleId ? (
+                <Link
+                  href={`/module/${nextModuleId}`}
+                  title={
+                    nextModuleTitle
+                      ? `Open next module: ${nextModuleTitle}`
+                      : "Open next module"
+                  }
+                  className="group inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-sm font-bold text-white shadow-md shadow-emerald-500/30 transition hover:from-emerald-600 hover:to-teal-600 active:scale-95"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span className="hidden sm:inline">Next module</span>
+                  <span className="sm:hidden">Next</span>
+                  <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                </Link>
+              ) : levelId ? (
+                <Link
+                  href={`/level/${levelId}`}
+                  title="Back to level"
+                  className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-sm font-bold text-white shadow-md shadow-emerald-500/30 transition hover:from-emerald-600 hover:to-teal-600 active:scale-95"
+                >
+                  <ListChecks className="h-4 w-4" />
+                  Finish level
+                </Link>
               ) : (
                 total > 1 && (
                   <Link
@@ -575,8 +792,111 @@ export default function TaskWorkspace({
           </div>
         </div>
 
+        {/* Editor card */}
+        <div
+          className={`overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/80 ${
+            mobileView === "editor" ? "" : "hidden"
+          } lg:block ${
+            fullscreen
+              ? "fixed inset-0 z-50 !block rounded-none border-0 bg-white dark:bg-slate-900"
+              : ""
+          }`}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-900 sm:px-4 sm:py-2.5">
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
+              <span className="flex gap-1">
+                <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
+                <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+              </span>
+              <span className="ml-1 font-mono">main.py</span>
+              {savedAt && (
+                <span
+                  title={`Saved ${new Date(savedAt).toLocaleTimeString()}`}
+                  className="ml-1 hidden items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 sm:inline-flex"
+                >
+                  <Save className="h-3 w-3" /> Saved
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={onCopy}
+                title="Copy code"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-200 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+              >
+                {copied ? (
+                  <Check className="h-3.5 w-3.5 text-emerald-500" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
+              </button>
+              <button
+                onClick={() => setFullscreen((f) => !f)}
+                title={fullscreen ? "Exit fullscreen" : "Fullscreen"}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-200 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+              >
+                {fullscreen ? (
+                  <Minimize2 className="h-3.5 w-3.5" />
+                ) : (
+                  <Maximize2 className="h-3.5 w-3.5" />
+                )}
+              </button>
+              <PyStatus loading={pyLoading} ready={pyReady} error={pyError} />
+            </div>
+          </div>
+          <CodeEditor
+            value={code}
+            onChange={setCode}
+            height={fullscreen ? "calc(100vh - 50px)" : "clamp(280px, 50vh, 520px)"}
+          />
+          <div className="hidden border-t border-slate-200 bg-slate-50 px-4 py-1.5 text-[11px] text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 sm:block">
+            <kbd className="rounded border border-slate-300 bg-white px-1 font-mono text-[10px] dark:border-slate-600 dark:bg-slate-800">Ctrl</kbd>
+            +
+            <kbd className="rounded border border-slate-300 bg-white px-1 font-mono text-[10px] dark:border-slate-600 dark:bg-slate-800">Enter</kbd>
+            <span className="mx-1">to Run</span>
+            <span className="mx-1 opacity-50">·</span>
+            <kbd className="rounded border border-slate-300 bg-white px-1 font-mono text-[10px] dark:border-slate-600 dark:bg-slate-800">Ctrl</kbd>
+            +
+            <kbd className="rounded border border-slate-300 bg-white px-1 font-mono text-[10px] dark:border-slate-600 dark:bg-slate-800">Shift</kbd>
+            +
+            <kbd className="rounded border border-slate-300 bg-white px-1 font-mono text-[10px] dark:border-slate-600 dark:bg-slate-800">Enter</kbd>
+            <span className="mx-1">to Submit</span>
+          </div>
+        </div>
+
+        {/* Custom Input (stdin) */}
+        {showStdin && (
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-2 dark:border-slate-800 dark:bg-slate-900/60">
+              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <TerminalSquare className="h-3.5 w-3.5" />
+                Custom Input (stdin)
+              </div>
+              <button
+                onClick={() => setShowStdin(false)}
+                className="text-slate-400 transition hover:text-slate-600 dark:hover:text-slate-300"
+                title="Hide stdin panel"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+            <textarea
+              value={customStdin}
+              onChange={(e) => setCustomStdin(e.target.value)}
+              placeholder="Enter input for your program (one line per input() call)..."
+              className="min-h-[80px] w-full resize-y bg-transparent p-4 font-mono text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none dark:text-slate-300 dark:placeholder:text-slate-500"
+              spellCheck={false}
+            />
+          </div>
+        )}
+
         {/* Console */}
-        <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 text-slate-100 shadow-lg">
+        <div
+          className={`overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 text-slate-100 shadow-lg ${
+            mobileView === "output" ? "" : "hidden"
+          } lg:block`}
+        >
           <div className="flex items-center gap-2 border-b border-slate-800 bg-slate-900/60 px-4 py-2 text-xs font-medium uppercase tracking-wider text-slate-400">
             <Terminal className="h-3.5 w-3.5" />
             Console
@@ -613,6 +933,41 @@ export default function TaskWorkspace({
         </div>
       </section>
     </div>
+    </>
+  );
+}
+
+function MobileViewButton({
+  active,
+  onClick,
+  icon,
+  label,
+  badge,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  badge?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`relative flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-bold transition ${
+        active
+          ? "bg-gradient-to-r from-brand-600 to-brand-500 text-white shadow-md shadow-brand-500/30"
+          : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+      }`}
+    >
+      {icon}
+      {label}
+      {badge && (
+        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-emerald-500 px-1 text-[9px] font-black text-white shadow-sm">
+          {badge}
+        </span>
+      )}
+    </button>
   );
 }
 

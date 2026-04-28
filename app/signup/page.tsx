@@ -12,9 +12,11 @@ import {
   User,
 } from "lucide-react";
 import PythonLogo from "@/components/PythonLogo";
+import AvatarUpload from "@/components/AvatarUpload";
 
 export default function SignupPage() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -26,7 +28,7 @@ export default function SignupPage() {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, image }),
       });
       const data = await res.json();
 
@@ -103,6 +105,15 @@ export default function SignupPage() {
           </p>
 
           <form onSubmit={onSubmit} className="space-y-4">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-800 dark:bg-slate-800/30">
+              <AvatarUpload
+                value={image}
+                onChange={setImage}
+                name={form.name}
+                size={80}
+              />
+            </div>
+
             <Field
               label="Full Name"
               icon={<User className="h-4 w-4" />}

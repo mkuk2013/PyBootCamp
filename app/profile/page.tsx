@@ -18,6 +18,7 @@ export default async function ProfilePage() {
       id: users.id,
       name: users.name,
       email: users.email,
+      image: users.image,
       role: users.role,
       approved: users.approved,
       createdAt: users.createdAt,
@@ -34,6 +35,7 @@ export default async function ProfilePage() {
       <main className="mx-auto max-w-3xl px-6 py-10">
         <ProfileForm
           initialName={user.name}
+          initialImage={user.image ?? null}
           email={user.email}
           role={user.role}
           approved={user.approved}

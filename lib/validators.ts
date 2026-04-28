@@ -4,6 +4,18 @@
 
 import { z } from "zod";
 
+/** Max length for an avatar data URL (base64). ~120KB cap. */
+export const AVATAR_MAX_LEN = 160_000;
+
+/** Validates a base64-encoded image data URL (PNG / JPEG / WebP). */
+export const imageDataUrlSchema = z
+  .string()
+  .max(AVATAR_MAX_LEN, "Image is too large — try a smaller picture")
+  .regex(
+    /^data:image\/(png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+$/,
+    "Invalid image format"
+  );
+
 export const signupSchema = z.object({
   name: z
     .string()
@@ -17,6 +29,7 @@ export const signupSchema = z.object({
     .max(72, "Password is too long")
     .regex(/[A-Za-z]/, "Password must contain a letter")
     .regex(/[0-9]/, "Password must contain a number"),
+  image: imageDataUrlSchema.optional().nullable(),
 });
 
 export const loginSchema = z.object({

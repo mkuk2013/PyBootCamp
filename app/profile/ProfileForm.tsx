@@ -14,10 +14,13 @@ import {
   CheckCircle2,
   Shield,
   Calendar,
+  Camera,
 } from "lucide-react";
+import AvatarUpload from "@/components/AvatarUpload";
 
 type Props = {
   initialName: string;
+  initialImage: string | null;
   email: string;
   role: "user" | "admin";
   approved: boolean;
@@ -26,6 +29,7 @@ type Props = {
 
 export default function ProfileForm({
   initialName,
+  initialImage,
   email,
   role,
   approved,
@@ -36,6 +40,41 @@ export default function ProfileForm({
 
   const [name, setName] = useState(initialName);
   const [savingName, setSavingName] = useState(false);
+
+  const [image, setImage] = useState<string | null>(initialImage);
+  const [savingImage, setSavingImage] = useState(false);
+
+  async function onSaveImage() {
+    if ((image ?? null) === (initialImage ?? null)) {
+      toast("No changes to save", { icon: "\u2139\uFE0F" });
+      return;
+    }
+    setSavingImage(true);
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.issues) {
+          const first = Object.values(data.issues).flat()[0] as string;
+          toast.error(first || data.error || "Update failed");
+        } else {
+          toast.error(data.error || "Update failed");
+        }
+        return;
+      }
+      toast.success(image ? "Photo updated!" : "Photo removed");
+      await updateSession();
+      router.refresh();
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setSavingImage(false);
+    }
+  }
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -145,8 +184,19 @@ export default function ProfileForm({
         <div className="pointer-events-none absolute -bottom-10 -left-10 h-40 w-40 animate-blob rounded-full bg-py-300/20 blur-3xl [animation-delay:3s]" />
 
         <div className="relative flex flex-wrap items-center gap-5">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-py-400 text-2xl font-black text-white shadow-lg shadow-brand-500/30">
-            {initials || "PY"}
+          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl shadow-lg shadow-brand-500/30">
+            {image ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={image}
+                alt={initialName}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-brand-500 to-py-400 text-2xl font-black text-white">
+                {initials || "PY"}
+              </div>
+            )}
           </div>
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-extrabold tracking-tight">
@@ -176,6 +226,41 @@ export default function ProfileForm({
               </span>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Profile picture */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="mb-1 flex items-center gap-2 text-lg font-bold">
+          <Camera className="h-5 w-5 text-brand-500" />
+          Profile picture
+        </h2>
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+          Your photo appears on your profile, the leaderboard, and the navbar.
+        </p>
+        <AvatarUpload
+          value={image}
+          onChange={setImage}
+          name={initialName}
+          size={96}
+          disabled={savingImage}
+        />
+        <div className="mt-5 flex justify-end">
+          <button
+            type="button"
+            onClick={onSaveImage}
+            disabled={
+              savingImage || (image ?? null) === (initialImage ?? null)
+            }
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-brand-500/30 transition hover:shadow-glow active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {savingImage ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Save photo
+          </button>
         </div>
       </div>
 

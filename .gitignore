@@ -29,3 +29,6 @@ local.db-*
 
 # drizzle
 drizzle/meta/_journal.json.bak
+
+# Local Netlify folder
+.netlify

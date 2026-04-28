@@ -59,6 +59,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           name: user.name,
           email: user.email,
+          image: user.image ?? null,
           role: user.role,
           approved: user.approved,
         };
@@ -67,11 +68,25 @@ export const authOptions: NextAuthOptions = {
   ],
 
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
         token.role = user.role;
         token.approved = user.approved;
+        token.picture = user.image ?? null;
+      }
+      // When the client calls update() (e.g. after profile change), refresh
+      // image / name from the database so navbar etc. stay in sync.
+      if (trigger === "update" && token.id) {
+        const fresh = await db
+          .select({ name: users.name, image: users.image })
+          .from(users)
+          .where(eq(users.id, token.id as string))
+          .get();
+        if (fresh) {
+          token.name = fresh.name;
+          token.picture = fresh.image ?? null;
+        }
       }
       return token;
     },
@@ -80,6 +95,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id;
         session.user.role = token.role;
         session.user.approved = token.approved;
+        session.user.image = (token.picture as string | null) ?? null;
       }
       return session;
     },

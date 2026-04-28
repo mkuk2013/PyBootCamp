@@ -6,8 +6,8 @@
  *   const allUsers = await db.select().from(users);
  */
 
-import { drizzle } from "drizzle-orm/libsql";
-import { createClient, type Client } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql/web";
+import { createClient, type Client } from "@libsql/client/web";
 import * as schema from "./schema";
 
 const url = process.env.TURSO_DATABASE_URL;

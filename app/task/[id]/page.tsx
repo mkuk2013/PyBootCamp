@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { tasks, modules, submissions } from "@/lib/db/schema";
+import { getNextModule } from "@/lib/progress";
 import Navbar from "@/components/Navbar";
 import TaskWorkspace from "@/components/TaskWorkspace";
 
@@ -51,6 +52,10 @@ export default async function TaskPage({
   const total = siblings.length;
   const position = idx + 1;
 
+  // If this is the last task in the module, surface the next module so the
+  // user can continue learning instead of bouncing back to the level page.
+  const nextModule = !nextTask ? await getNextModule(task.moduleId) : null;
+
   // Check if user already passed this task
   const passed = await db
     .select({ id: submissions.id })
@@ -67,7 +72,7 @@ export default async function TaskPage({
   return (
     <>
       <Navbar />
-      <main className="mx-auto max-w-7xl px-6 py-8">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <Link
             href={`/module/${task.moduleId}`}
@@ -101,6 +106,9 @@ export default async function TaskPage({
           initiallyCompleted={Boolean(passed)}
           prevTaskId={prevTask?.id ?? null}
           nextTaskId={nextTask?.id ?? null}
+          nextModuleId={nextModule?.id ?? null}
+          nextModuleTitle={nextModule?.title ?? null}
+          levelId={mod?.levelId ?? null}
           position={position}
           total={total}
           moduleContent={mod?.content ?? null}

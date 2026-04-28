@@ -10,9 +10,16 @@ import {
   Target,
   Layers,
   Sparkles,
+  Zap,
+  XCircle,
+  Activity,
 } from "lucide-react";
 import { authOptions } from "@/lib/auth";
-import { getLevelsWithProgress } from "@/lib/progress";
+import {
+  getLevelsWithProgress,
+  getStreak,
+  getRecentActivity,
+} from "@/lib/progress";
 import Navbar from "@/components/Navbar";
 import ProgressBar from "@/components/ProgressBar";
 
@@ -22,7 +29,11 @@ export default async function DashboardPage() {
   if (session.user.role === "admin") redirect("/admin");
   if (!session.user.approved) redirect("/pending");
 
-  const allLevels = await getLevelsWithProgress(session.user.id);
+  const [allLevels, streak, recent] = await Promise.all([
+    getLevelsWithProgress(session.user.id),
+    getStreak(session.user.id),
+    getRecentActivity(session.user.id, 6),
+  ]);
   const totalTasks = allLevels.reduce((s, l) => s + l.totalTasks, 0);
   const totalCompleted = allLevels.reduce((s, l) => s + l.completedTasks, 0);
   const overall =
@@ -82,7 +93,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Stats */}
-        <div className="mb-10 grid gap-4 md:grid-cols-3">
+        <div className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             icon={<Target className="h-5 w-5" />}
             color="from-brand-500 to-cyan-500"
@@ -90,6 +101,23 @@ export default async function DashboardPage() {
             value={`${overall}%`}
           >
             <ProgressBar percent={overall} className="mt-3" />
+          </StatCard>
+          <StatCard
+            icon={<Zap className="h-5 w-5" />}
+            color="from-orange-500 to-rose-500"
+            label="Daily Streak"
+            value={streak.current === 0 ? "0 days" : `${streak.current} day${streak.current === 1 ? "" : "s"}`}
+          >
+            <p className="mt-2 flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+              {streak.current > 0 ? (
+                <>
+                  <Flame className="h-3 w-3 text-orange-500" />
+                  Best: {streak.longest} day{streak.longest === 1 ? "" : "s"}
+                </>
+              ) : (
+                <>Solve a task today to start a streak!</>
+              )}
+            </p>
           </StatCard>
           <StatCard
             icon={<Flame className="h-5 w-5" />}
@@ -114,6 +142,61 @@ export default async function DashboardPage() {
             </p>
           </StatCard>
         </div>
+
+        {/* Recent activity */}
+        {recent.length > 0 && (
+          <div className="mb-10 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-lg font-bold">
+                <Activity className="h-5 w-5 text-brand-500" />
+                Recent Activity
+              </h2>
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                Last {recent.length} attempt{recent.length === 1 ? "" : "s"}
+              </span>
+            </div>
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+              {recent.map((r) => (
+                <li key={r.id}>
+                  <Link
+                    href={`/task/${r.taskId}`}
+                    className="group flex items-center gap-3 py-3 transition hover:opacity-90"
+                  >
+                    <span
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                        r.result === "pass"
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                          : "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300"
+                      }`}
+                    >
+                      {r.result === "pass" ? (
+                        <CheckCircle2 className="h-4.5 w-4.5" />
+                      ) : (
+                        <XCircle className="h-4.5 w-4.5" />
+                      )}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-sm font-semibold group-hover:text-brand-600 dark:group-hover:text-brand-400">
+                          {truncate(r.taskQuestion, 70)}
+                        </span>
+                        {r.result === "pass" && r.score > 0 && (
+                          <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                            +{r.score}
+                          </span>
+                        )}
+                      </div>
+                      <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                        {r.moduleTitle} · {timeAgo(r.createdAt)}
+                      </p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-brand-500" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Levels list */}
         <div className="mb-4 flex items-end justify-between">
@@ -212,6 +295,25 @@ export default async function DashboardPage() {
       </main>
     </>
   );
+}
+
+function truncate(s: string, n: number) {
+  if (!s) return "";
+  return s.length > n ? s.slice(0, n).trim() + "…" : s;
+}
+
+function timeAgo(d: Date) {
+  const seconds = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 4) return `${weeks}w ago`;
+  return d.toLocaleDateString();
 }
 
 function StatCard({

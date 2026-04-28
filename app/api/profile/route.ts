@@ -6,18 +6,25 @@ import bcrypt from "bcryptjs";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
+import { imageDataUrlSchema } from "@/lib/validators";
 
 /**
  * PATCH /api/profile
  * Body:
- *   { name?: string, currentPassword?: string, newPassword?: string }
+ *   {
+ *     name?: string,
+ *     image?: string | null,   // base64 data URL, or null to remove
+ *     currentPassword?: string,
+ *     newPassword?: string,
+ *   }
  *
- * - Updating the name only requires a session.
+ * - Updating the name / image only requires a session.
  * - Changing the password requires currentPassword + newPassword.
  */
 const schema = z
   .object({
     name: z.string().trim().min(2).max(80).optional(),
+    image: imageDataUrlSchema.nullable().optional(),
     currentPassword: z.string().min(1).optional(),
     newPassword: z
       .string()
@@ -47,8 +54,9 @@ export async function PATCH(req: Request) {
     );
   }
 
-  const { name, currentPassword, newPassword } = parsed.data;
-  if (!name && !newPassword) {
+  const { name, image, currentPassword, newPassword } = parsed.data;
+  const imageProvided = "image" in parsed.data;
+  if (!name && !newPassword && !imageProvided) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
   }
 
@@ -61,10 +69,15 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const updates: { name?: string; password?: string } = {};
+  const updates: { name?: string; password?: string; image?: string | null } =
+    {};
 
   if (name && name !== user.name) {
     updates.name = name;
+  }
+
+  if (imageProvided && (image ?? null) !== (user.image ?? null)) {
+    updates.image = image ?? null;
   }
 
   if (newPassword) {
@@ -87,6 +100,7 @@ export async function PATCH(req: Request) {
   return NextResponse.json({
     ok: true,
     name: updates.name ?? user.name,
+    image: imageProvided ? updates.image ?? null : user.image ?? null,
     passwordChanged: !!updates.password,
   });
 }

@@ -12,7 +12,7 @@
  */
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -167,5 +167,53 @@ export async function POST(req: Request) {
     score,
     output: allPassed ? lastOutput : firstFailureOutput,
     detail,
+  });
+}
+
+/**
+ * GET /api/submissions?taskId=123
+ * Returns the current user's last 10 submissions for the given task.
+ */
+export async function GET(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const url = new URL(req.url);
+  const taskIdParam = url.searchParams.get("taskId");
+  const taskId = taskIdParam ? Number(taskIdParam) : NaN;
+  if (!Number.isFinite(taskId) || taskId <= 0) {
+    return NextResponse.json({ error: "taskId required" }, { status: 400 });
+  }
+
+  const rows = await db
+    .select({
+      id: submissions.id,
+      code: submissions.code,
+      result: submissions.result,
+      score: submissions.score,
+      output: submissions.output,
+      runtimeMs: submissions.runtimeMs,
+      createdAt: submissions.createdAt,
+    })
+    .from(submissions)
+    .where(
+      and(
+        eq(submissions.userId, session.user.id),
+        eq(submissions.taskId, taskId)
+      )
+    )
+    .orderBy(desc(submissions.createdAt))
+    .limit(10);
+
+  return NextResponse.json({
+    submissions: rows.map((r) => ({
+      ...r,
+      createdAt:
+        r.createdAt instanceof Date
+          ? r.createdAt.toISOString()
+          : new Date(r.createdAt).toISOString(),
+    })),
   });
 }

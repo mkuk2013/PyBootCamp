@@ -13,8 +13,12 @@ import {
   Award,
   Terminal,
   PlayCircle,
+  Facebook,
+  Users,
+  Bell,
 } from "lucide-react";
 import PythonLogo from "@/components/PythonLogo";
+import FacebookFeed, { PYBOOTCAMP_FB_URL } from "@/components/FacebookFeed";
 
 export default function HomePage() {
   return (
@@ -53,6 +57,12 @@ export default function HomePage() {
             className="hidden rounded-lg px-3 py-2 text-slate-600 transition hover:text-brand-600 dark:text-slate-300 md:inline"
           >
             How it works
+          </a>
+          <a
+            href="#community"
+            className="hidden rounded-lg px-3 py-2 text-slate-600 transition hover:text-brand-600 dark:text-slate-300 md:inline"
+          >
+            Community
           </a>
           <Link
             href="/login"
@@ -299,6 +309,112 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ============== COMMUNITY (Facebook) ============== */}
+      <section
+        id="community"
+        className="relative z-10 mx-auto max-w-7xl px-6 py-24 md:px-10"
+      >
+        <SectionTitle
+          eyebrow="Community"
+          title="Join the conversation on Facebook"
+          desc="Follow our page for new module releases, Python tips, weekly challenges, and community wins."
+        />
+
+        <div className="mt-14 grid items-stretch gap-10 lg:grid-cols-[1fr_auto]">
+          {/* Left: pitch + benefits + CTA */}
+          <div className="flex flex-col justify-center">
+            <a
+              href={PYBOOTCAMP_FB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-[#1877F2]/30 bg-[#1877F2]/10 px-3.5 py-1.5 text-xs font-semibold text-[#1877F2] backdrop-blur transition hover:bg-[#1877F2]/20 dark:text-[#69a4f5]"
+            >
+              <Facebook className="h-3.5 w-3.5" />
+              facebook.com/PyBootCamp
+            </a>
+
+            <h3 className="mb-4 max-w-xl text-3xl font-extrabold tracking-tight md:text-4xl">
+              Don&apos;t learn alone —{" "}
+              <span className="text-[#1877F2]">connect</span> &amp; grow with
+              fellow learners.
+            </h3>
+            <p className="mb-7 max-w-xl text-lg leading-relaxed text-slate-600 dark:text-slate-300">
+              Our Facebook page is where the bootcamp comes alive — announcements,
+              behind-the-scenes, learner spotlights, and quick Python tricks
+              you&apos;ll actually use.
+            </p>
+
+            <ul className="mb-8 space-y-3 text-sm">
+              <li className="flex items-start gap-3">
+                <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#1877F2]/10 text-[#1877F2]">
+                  <Bell className="h-3.5 w-3.5" />
+                </span>
+                <div>
+                  <strong className="text-slate-900 dark:text-white">
+                    Get notified instantly
+                  </strong>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Be the first to know when new modules and tasks drop.
+                  </p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#1877F2]/10 text-[#1877F2]">
+                  <Sparkles className="h-3.5 w-3.5" />
+                </span>
+                <div>
+                  <strong className="text-slate-900 dark:text-white">
+                    Daily Python tips
+                  </strong>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Bite-sized snippets, idioms, and gotchas — straight to your
+                    feed.
+                  </p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#1877F2]/10 text-[#1877F2]">
+                  <Users className="h-3.5 w-3.5" />
+                </span>
+                <div>
+                  <strong className="text-slate-900 dark:text-white">
+                    A growing community
+                  </strong>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Ask questions, share solutions, and celebrate other
+                    learners&apos; certificates.
+                  </p>
+                </div>
+              </li>
+            </ul>
+
+            <div className="flex flex-wrap gap-3">
+              <a
+                href={PYBOOTCAMP_FB_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex items-center gap-2 rounded-xl bg-[#1877F2] px-6 py-3 font-bold text-white shadow-lg shadow-[#1877F2]/30 transition hover:bg-[#0a66c2] active:scale-95"
+              >
+                <Facebook className="h-4 w-4" />
+                Follow on Facebook
+                <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+              </a>
+              <a
+                href={PYBOOTCAMP_FB_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white/70 px-5 py-3 font-semibold text-slate-700 backdrop-blur transition hover:border-[#1877F2] hover:text-[#1877F2] dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:border-[#1877F2] dark:hover:text-[#69a4f5]"
+              >
+                Visit page
+              </a>
+            </div>
+          </div>
+
+          {/* Right: live timeline embed */}
+          <FacebookFeed height={580} />
+        </div>
+      </section>
+
       {/* ============== CTA ============== */}
       <section className="relative z-10 mx-auto max-w-7xl px-6 pb-24 md:px-10">
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-700 via-brand-600 to-slate-900 p-10 shadow-2xl shadow-brand-500/30 md:p-16">
@@ -346,13 +462,22 @@ export default function HomePage() {
               © {new Date().getFullYear()} PyBootCamp · Built with Next.js + Pyodide
             </span>
           </div>
-          <div className="flex items-center gap-5">
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             <Link href="/login" className="hover:text-brand-600">
               Login
             </Link>
             <Link href="/signup" className="hover:text-brand-600">
               Sign up
             </Link>
+            <a
+              href={PYBOOTCAMP_FB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 hover:text-[#1877F2]"
+              title="PyBootCamp on Facebook"
+            >
+              <Facebook className="h-4 w-4" /> Facebook
+            </a>
             <a
               href="https://www.python.org"
               target="_blank"

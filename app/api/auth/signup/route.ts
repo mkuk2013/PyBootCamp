@@ -28,7 +28,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { name, email, password } = parsed.data;
+    const { name, email, password, image } = parsed.data;
 
     // Check duplicate
     const existing = await db
@@ -52,6 +52,7 @@ export async function POST(req: Request) {
       password: hash,
       role: "user",
       approved: false,
+      image: image ?? null,
     });
 
     return NextResponse.json(

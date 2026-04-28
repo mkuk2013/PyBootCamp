@@ -32,6 +32,9 @@ export const users = sqliteTable(
     name: text("name").notNull(),
     email: text("email").notNull(),
     password: text("password").notNull(), // bcrypt hash
+    /** Profile picture as a data URL (base64). Resized client-side to 256x256
+     *  JPEG before upload. Stored inline to avoid object-storage dependency. */
+    image: text("image"),
     role: text("role", { enum: ["user", "admin"] })
       .notNull()
       .default("user"),

@@ -86,12 +86,42 @@ export async function runPythonInBrowser(
   py.setStdout({ batched: (s: string) => (stdout += s + "\n") });
   py.setStderr({ batched: (s: string) => (stderr += s + "\n") });
 
-  // Feed stdin via sys.stdin so input() works naturally.
+  // Feed stdin via sys.stdin AND override builtins.input.
+  //
+  // Why both?  Pyodide's default `input()` is *not* CPython's: it ignores
+  // sys.stdin and tries to call its own `setStdin` callback (or falls back
+  // to `window.prompt()` in the browser). That means tasks using `input()`
+  // would either pop up a browser dialog or hang — even if we set sys.stdin.
+  //
+  // To make tasks behave like a normal Python script reading from stdin,
+  // we replace `builtins.input` with a CPython-style implementation that
+  // reads one line from `sys.stdin`, prints the prompt to stdout (matching
+  // CPython behaviour when stdin is a pipe), and raises EOFError when the
+  // stream is exhausted.
   const stdinData = stdin ?? "";
   py.globals.set("__pbc_stdin", stdinData);
   await py.runPythonAsync(`
-import sys, io
+import sys, io, builtins
+
 sys.stdin = io.StringIO(__pbc_stdin)
+
+def __pbc_input(prompt=""):
+    # NOTE: we deliberately do NOT echo the prompt to stdout. Online-judge
+    # style tasks compare program output against an expected string that
+    # contains only the data the program prints — never the prompts passed
+    # to input(). Echoing the prompt would cause every input-based task to
+    # appear "Wrong Answer" even when the logic is correct.
+    line = sys.stdin.readline()
+    if line == "":
+        raise EOFError("EOF when reading a line")
+    # Strip the single trailing newline (\\r\\n or \\n), like CPython input().
+    if line.endswith("\\r\\n"):
+        return line[:-2]
+    if line.endswith("\\n"):
+        return line[:-1]
+    return line
+
+builtins.input = __pbc_input
 `);
 
   const start = performance.now();

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { eq } from "drizzle-orm";
-import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Lock } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { levels } from "@/lib/db/schema";
@@ -74,30 +74,77 @@ export default async function LevelPage({
           )}
 
           {mods.map((m) => {
-            const done = m.totalTasks > 0 && m.completedTasks === m.totalTasks;
-            return (
-              <Link
-                key={m.id}
-                href={`/module/${m.id}`}
-                className="block rounded-xl border border-slate-200 bg-white p-5 transition hover:border-brand-400 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-brand-600"
-              >
+            const done = m.completed;
+            // Admins always have access regardless of unlock state
+            const accessible = m.unlocked || session.user.role === "admin";
+            const iconClass = done
+              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+              : accessible
+              ? "bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"
+              : "bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-500";
+            const cardClass = accessible
+              ? "block rounded-xl border border-slate-200 bg-white p-5 transition hover:border-brand-400 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-brand-600"
+              : "block cursor-not-allowed rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-5 opacity-75 dark:border-slate-800 dark:bg-slate-900/40";
+
+            const inner = (
+              <>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
-                      {done ? <CheckCircle2 className="h-5 w-5" /> : <BookOpen className="h-5 w-5" />}
+                    <span
+                      className={`flex h-9 w-9 items-center justify-center rounded-lg ${iconClass}`}
+                    >
+                      {done ? (
+                        <CheckCircle2 className="h-5 w-5" />
+                      ) : accessible ? (
+                        <BookOpen className="h-5 w-5" />
+                      ) : (
+                        <Lock className="h-5 w-5" />
+                      )}
                     </span>
                     <div>
-                      <h3 className="font-semibold">
-                        {m.order}. {m.title}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold">
+                          {m.order}. {m.title}
+                        </h3>
+                        {done && (
+                          <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                            Done
+                          </span>
+                        )}
+                        {!accessible && (
+                          <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                            Locked
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {m.completedTasks} / {m.totalTasks} tasks
+                        {accessible
+                          ? `${m.completedTasks} / ${m.totalTasks} tasks`
+                          : "Finish the previous module to unlock"}
                       </p>
                     </div>
                   </div>
-                  <ArrowRight className="h-5 w-5 text-slate-400" />
+                  {accessible ? (
+                    <ArrowRight className="h-5 w-5 text-slate-400" />
+                  ) : (
+                    <Lock className="h-4 w-4 text-slate-400" />
+                  )}
                 </div>
                 <ProgressBar percent={m.percent} className="mt-3" />
+              </>
+            );
+
+            if (!accessible) {
+              return (
+                <div key={m.id} className={cardClass} aria-disabled>
+                  {inner}
+                </div>
+              );
+            }
+
+            return (
+              <Link key={m.id} href={`/module/${m.id}`} className={cardClass}>
+                {inner}
               </Link>
             );
           })}
