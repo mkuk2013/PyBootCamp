@@ -13,6 +13,8 @@ import {
   Zap,
   XCircle,
   Activity,
+  Award,
+  TrendingUp,
 } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import {
@@ -20,6 +22,9 @@ import {
   getStreak,
   getRecentActivity,
 } from "@/lib/progress";
+import { db } from "@/lib/db";
+import { users, achievements, userAchievements } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import Navbar from "@/components/Navbar";
 import ProgressBar from "@/components/ProgressBar";
 
@@ -29,11 +34,26 @@ export default async function DashboardPage() {
   if (session.user.role === "admin") redirect("/admin");
   if (!session.user.approved) redirect("/pending");
 
-  const [allLevels, streak, recent] = await Promise.all([
+  const [allLevels, streak, recent, user, userAchievementsData] = await Promise.all([
     getLevelsWithProgress(session.user.id),
     getStreak(session.user.id),
     getRecentActivity(session.user.id, 6),
+    db.select().from(users).where(eq(users.id, session.user.id)).get(),
+    db
+      .select({
+        id: achievements.id,
+        name: achievements.name,
+        icon: achievements.icon,
+        badgeColor: achievements.badgeColor,
+      })
+      .from(userAchievements)
+      .innerJoin(achievements, eq(userAchievements.achievementId, achievements.id))
+      .where(eq(userAchievements.userId, session.user.id))
+      .orderBy(userAchievements.unlockedAt),
   ]);
+
+  if (!user) redirect("/login");
+
   const totalTasks = allLevels.reduce((s, l) => s + l.totalTasks, 0);
   const totalCompleted = allLevels.reduce((s, l) => s + l.completedTasks, 0);
   const overall =
@@ -41,6 +61,21 @@ export default async function DashboardPage() {
   const currentLevel =
     allLevels.find((l) => l.unlocked && l.percent < 100) ??
     allLevels[allLevels.length - 1];
+
+  // XP progress to next level
+  const currentXP = user.xp ?? 0;
+  const userLevel = user.level ?? 1;
+  const xpForNextLevel = getXpForLevel(userLevel + 1);
+  const xpForCurrentLevel = getXpForLevel(userLevel);
+  const xpProgress = Math.min(
+    100,
+    Math.round(((currentXP - xpForCurrentLevel) / (xpForNextLevel - xpForCurrentLevel)) * 100)
+  );
+
+  function getXpForLevel(level: number): number {
+    const thresholds = [0, 100, 300, 600, 1000, 1500, 2100, 2800, 3600, 4500];
+    return thresholds[Math.min(level - 1, thresholds.length - 1)] ?? 4500;
+  }
 
   const firstName = session.user.name?.split(" ")[0] ?? "there";
 
@@ -104,6 +139,19 @@ export default async function DashboardPage() {
           </StatCard>
           <StatCard
             icon={<Zap className="h-5 w-5" />}
+            color="from-purple-500 to-pink-500"
+            label="XP Points"
+            value={`${currentXP} XP`}
+          >
+            <div className="mt-3">
+              <ProgressBar percent={xpProgress} className="mb-1" />
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Level {userLevel} · {xpForNextLevel - currentXP} XP to Level {userLevel + 1}
+              </p>
+            </div>
+          </StatCard>
+          <StatCard
+            icon={<Flame className="h-5 w-5" />}
             color="from-orange-500 to-rose-500"
             label="Daily Streak"
             value={streak.current === 0 ? "0 days" : `${streak.current} day${streak.current === 1 ? "" : "s"}`}
@@ -120,8 +168,24 @@ export default async function DashboardPage() {
             </p>
           </StatCard>
           <StatCard
-            icon={<Flame className="h-5 w-5" />}
-            color="from-amber-500 to-rose-500"
+            icon={<Award className="h-5 w-5" />}
+            color="from-emerald-500 to-teal-500"
+            label="Achievements"
+            value={`${userAchievementsData.length}`}
+          >
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              {userAchievementsData.length === 0
+                ? "Complete tasks to unlock badges!"
+                : "Keep learning to earn more!"}
+            </p>
+          </StatCard>
+        </div>
+
+        {/* Additional detailed stats */}
+        <div className="mb-10 grid gap-4 sm:grid-cols-3">
+          <StatCard
+            icon={<TrendingUp className="h-5 w-5" />}
+            color="from-blue-500 to-indigo-500"
             label="Tasks Completed"
             value={`${totalCompleted} / ${totalTasks}`}
           >
@@ -133,12 +197,22 @@ export default async function DashboardPage() {
           </StatCard>
           <StatCard
             icon={<Layers className="h-5 w-5" />}
-            color="from-emerald-500 to-teal-500"
+            color="from-cyan-500 to-blue-500"
             label="Current Level"
             value={currentLevel?.title ?? "—"}
           >
             <p className="mt-2 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
               {currentLevel?.description ?? ""}
+            </p>
+          </StatCard>
+          <StatCard
+            icon={<CheckCircle2 className="h-5 w-5" />}
+            color="from-green-500 to-emerald-500"
+            label="Success Rate"
+            value={recent.length > 0 ? `${Math.round((recent.filter(r => r.result === "pass").length / recent.length) * 100)}%` : "—"}
+          >
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              {recent.length > 0 ? "Based on recent attempts" : "No attempts yet"}
             </p>
           </StatCard>
         </div>
