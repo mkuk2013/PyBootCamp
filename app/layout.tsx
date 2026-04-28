@@ -42,9 +42,9 @@ export const metadata: Metadata = {
       "Level-based Python bootcamp with browser-based execution. 76+ hands-on tasks. Free.",
     images: ["/logo.png"],
   },
-  // Favicon: Next.js auto-detects `app/icon.png` (or .ico), so we only need to
-  // declare the high-res Apple touch icon explicitly.
+  // Favicon configuration
   icons: {
+    icon: "/icon.png",
     apple: "/logo.png",
   },
 };
