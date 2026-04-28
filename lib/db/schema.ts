@@ -41,6 +41,15 @@ export const users = sqliteTable(
     approved: integer("approved", { mode: "boolean" })
       .notNull()
       .default(false),
+    /** XP points earned by the user */
+    xp: integer("xp").notNull().default(0),
+    /** User level based on XP (1-10) */
+    level: integer("level").notNull().default(1),
+    /** Current streak of consecutive days with activity */
+    streak: integer("streak").notNull().default(0),
+    /** Last date the user was active (for streak calculation) */
+    lastActiveAt: integer("last_active_at", { mode: "timestamp" })
+      .default(sql`(unixepoch())`),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),
@@ -133,6 +142,54 @@ export const tasks = sqliteTable(
 );
 
 /* ------------------------------------------------------------------ */
+/*                           ACHIEVEMENTS                              */
+/* ------------------------------------------------------------------ */
+export const achievements = sqliteTable(
+  "achievements",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+    /** Icon name from lucide-react */
+    icon: text("icon").notNull(),
+    /** XP required to unlock this achievement */
+    xpRequired: integer("xp_required").notNull(),
+    /** Badge color for UI */
+    badgeColor: text("badge_color").notNull().default("emerald"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => ({
+    xpIdx: index("achievements_xp_idx").on(t.xpRequired),
+  })
+);
+
+/* ------------------------------------------------------------------ */
+/*                         USER ACHIEVEMENTS                           */
+/* ------------------------------------------------------------------ */
+export const userAchievements = sqliteTable(
+  "user_achievements",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    achievementId: integer("achievement_id")
+      .notNull()
+      .references(() => achievements.id, { onDelete: "cascade" }),
+    unlockedAt: integer("unlocked_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => ({
+    userIdx: index("user_achievements_user_idx").on(t.userId),
+    achievementIdx: index("user_achievements_achievement_idx").on(t.achievementId),
+    userAchievementIdx: uniqueIndex("user_achievements_user_achievement_idx").on(t.userId, t.achievementId),
+  })
+);
+
+/* ------------------------------------------------------------------ */
 /*                            SUBMISSIONS                              */
 /* ------------------------------------------------------------------ */
 export const submissions = sqliteTable(
@@ -166,6 +223,22 @@ export const submissions = sqliteTable(
 /* ------------------------------------------------------------------ */
 export const usersRelations = relations(users, ({ many }) => ({
   submissions: many(submissions),
+  userAchievements: many(userAchievements),
+}));
+
+export const achievementsRelations = relations(achievements, ({ many }) => ({
+  userAchievements: many(userAchievements),
+}));
+
+export const userAchievementsRelations = relations(userAchievements, ({ one }) => ({
+  user: one(users, {
+    fields: [userAchievements.userId],
+    references: [users.id],
+  }),
+  achievement: one(achievements, {
+    fields: [userAchievements.achievementId],
+    references: [achievements.id],
+  }),
 }));
 
 export const levelsRelations = relations(levels, ({ many }) => ({
@@ -216,3 +289,9 @@ export type NewTask = typeof tasks.$inferInsert;
 
 export type Submission = typeof submissions.$inferSelect;
 export type NewSubmission = typeof submissions.$inferInsert;
+
+export type Achievement = typeof achievements.$inferSelect;
+export type NewAchievement = typeof achievements.$inferInsert;
+
+export type UserAchievement = typeof userAchievements.$inferSelect;
+export type NewUserAchievement = typeof userAchievements.$inferInsert;

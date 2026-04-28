@@ -62,6 +62,9 @@ export const authOptions: NextAuthOptions = {
           image: user.image ?? null,
           role: user.role,
           approved: user.approved,
+          xp: user.xp ?? 0,
+          level: user.level ?? 1,
+          streak: user.streak ?? 0,
         };
       },
     }),
@@ -74,18 +77,24 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.approved = user.approved;
         token.picture = user.image ?? null;
+        token.xp = user.xp ?? 0;
+        token.level = user.level ?? 1;
+        token.streak = user.streak ?? 0;
       }
       // When the client calls update() (e.g. after profile change), refresh
       // image / name from the database so navbar etc. stay in sync.
       if (trigger === "update" && token.id) {
         const fresh = await db
-          .select({ name: users.name, image: users.image })
+          .select({ name: users.name, image: users.image, xp: users.xp, level: users.level, streak: users.streak })
           .from(users)
           .where(eq(users.id, token.id as string))
           .get();
         if (fresh) {
           token.name = fresh.name;
           token.picture = fresh.image ?? null;
+          token.xp = fresh.xp ?? 0;
+          token.level = fresh.level ?? 1;
+          token.streak = fresh.streak ?? 0;
         }
       }
       return token;
@@ -96,6 +105,9 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role;
         session.user.approved = token.approved;
         session.user.image = (token.picture as string | null) ?? null;
+        session.user.xp = token.xp as number;
+        session.user.level = token.level as number;
+        session.user.streak = token.streak as number;
       }
       return session;
     },

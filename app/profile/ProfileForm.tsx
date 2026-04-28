@@ -15,6 +15,8 @@ import {
   Shield,
   Calendar,
   Camera,
+  Zap,
+  Flame,
 } from "lucide-react";
 import AvatarUpload from "@/components/AvatarUpload";
 
@@ -25,6 +27,9 @@ type Props = {
   role: "user" | "admin";
   approved: boolean;
   memberSince: string | null;
+  xp: number;
+  level: number;
+  streak: number;
 };
 
 export default function ProfileForm({
@@ -34,6 +39,9 @@ export default function ProfileForm({
   role,
   approved,
   memberSince,
+  xp,
+  level,
+  streak,
 }: Props) {
   const router = useRouter();
   const { update: updateSession } = useSession();
@@ -224,6 +232,21 @@ export default function ProfileForm({
               <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                 <Calendar className="h-3 w-3" /> Member since {memberSinceLabel}
               </span>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-1.5 rounded-lg bg-brand-50 px-3 py-1.5 text-xs font-bold text-brand-700 dark:bg-brand-900/30 dark:text-brand-300">
+                <Zap className="h-3.5 w-3.5" />
+                <span>{xp} XP</span>
+              </div>
+              <div className="flex items-center gap-1.5 rounded-lg bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                <span>Level {level}</span>
+              </div>
+              {streak > 0 && (
+                <div className="flex items-center gap-1.5 rounded-lg bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
+                  <Flame className="h-3.5 w-3.5" />
+                  <span>{streak} day streak</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

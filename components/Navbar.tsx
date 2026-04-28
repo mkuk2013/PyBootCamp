@@ -14,6 +14,8 @@ import {
   X,
   User as UserIcon,
   LogOut,
+  Flame,
+  Zap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
@@ -86,6 +88,29 @@ export default function Navbar() {
             >
               <Shield className="h-4 w-4" /> Admin
             </Link>
+          )}
+
+          {/* XP, Level, Streak display */}
+          {session && !isAdmin && (
+            <div className="mr-1 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 dark:border-slate-700 dark:bg-slate-800">
+              <div className="flex items-center gap-1 text-xs font-semibold text-brand-600 dark:text-brand-400">
+                <Zap className="h-3.5 w-3.5" />
+                <span>{session.user.xp || 0} XP</span>
+              </div>
+              <div className="h-3 w-px bg-slate-300 dark:bg-slate-600" />
+              <div className="flex items-center gap-1 text-xs font-semibold text-purple-600 dark:text-purple-400">
+                <span>Lvl {session.user.level || 1}</span>
+              </div>
+              {(session.user.streak || 0) > 0 && (
+                <>
+                  <div className="h-3 w-px bg-slate-300 dark:bg-slate-600" />
+                  <div className="flex items-center gap-1 text-xs font-semibold text-orange-600 dark:text-orange-400">
+                    <Flame className="h-3.5 w-3.5" />
+                    <span>{session.user.streak || 0}</span>
+                  </div>
+                </>
+              )}
+            </div>
           )}
 
           {mounted && (
