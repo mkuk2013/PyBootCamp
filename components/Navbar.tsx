@@ -237,7 +237,7 @@ export default function Navbar() {
                 label="Profile"
               />
               <button
-                onClick={() => signOut({ callbackUrl: "/login" })}
+                onClick={() => signOut({ callbackUrl: "/login?logout=success" })}
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-rose-600 transition hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/20"
               >
                 <LogOut className="h-5 w-5" />

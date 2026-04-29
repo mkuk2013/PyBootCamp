@@ -16,7 +16,7 @@ export default function PendingPage() {
         </p>
         <div className="flex flex-col gap-3">
           <button
-            onClick={() => signOut({ callbackUrl: "/" })}
+            onClick={() => signOut({ callbackUrl: "/login?logout=success" })}
             className="rounded-lg bg-brand-600 px-5 py-2.5 font-semibold text-white shadow hover:bg-brand-700"
           >
             Sign Out
