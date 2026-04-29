@@ -18,7 +18,9 @@ export default withAuth(
     // Admin routes
     if (pathname.startsWith("/admin")) {
       if (token?.role !== "admin") {
-        return NextResponse.redirect(new URL("/dashboard", req.url));
+        const url = req.nextUrl.clone();
+        url.pathname = "/dashboard";
+        return NextResponse.redirect(url);
       }
     }
 
@@ -26,7 +28,9 @@ export default withAuth(
     const protectedPrefixes = ["/dashboard", "/level", "/module"];
     if (protectedPrefixes.some((p) => pathname.startsWith(p))) {
       if (token && !token.approved && token.role !== "admin") {
-        return NextResponse.redirect(new URL("/pending", req.url));
+        const url = req.nextUrl.clone();
+        url.pathname = "/pending";
+        return NextResponse.redirect(url);
       }
     }
 
