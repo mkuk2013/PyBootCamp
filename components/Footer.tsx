@@ -7,11 +7,16 @@ export default function Footer() {
   return (
     <footer className="mt-16 border-t border-slate-200/70 bg-white/60 backdrop-blur-sm dark:border-slate-800/70 dark:bg-slate-950/60">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-6 text-sm text-slate-600 dark:text-slate-400 sm:flex-row sm:px-6">
-        <div className="flex items-center gap-2">
-          <PythonLogo size={20} />
-          <span className="font-semibold text-slate-700 dark:text-slate-300">
-            &copy; {new Date().getFullYear()} PyBootCamp
-          </span>
+        <div className="flex items-center gap-2.5">
+          <PythonLogo size={24} className="shrink-0" />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+            <span className="text-base font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
+              Py<span className="text-brand-600 dark:text-brand-400">BootCamp</span>
+            </span>
+            <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 sm:mt-0.5">
+              &copy; {new Date().getFullYear()}
+            </span>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
