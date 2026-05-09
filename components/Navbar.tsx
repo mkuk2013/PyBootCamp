@@ -25,7 +25,7 @@ import PythonLogo from "./PythonLogo";
 import CommandPalette from "./CommandPalette";
 import LogoutButton from "./LogoutButton";
 
-export default function Navbar() {
+export default function Navbar({ searchItems = [] }: { searchItems?: any[] }) {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -69,14 +69,7 @@ export default function Navbar() {
 
         {/* Global Search — Command Palette */}
         <div className="hidden flex-1 justify-center px-8 lg:flex">
-          <CommandPalette 
-            items={[
-              { id: "1", title: "Variables & Types", type: "module", href: "/module/1", descriptionText: "Learn the building blocks of Python" },
-              { id: "2", title: "If / Else Statements", type: "module", href: "/module/2", descriptionText: "Control the flow of your programs" },
-              { id: "3", title: "Advanced OOP", type: "module", href: "/module/3", descriptionText: "Master Classes and Inheritance" },
-              { id: "4", title: "Global Leaderboard", type: "level", href: "/leaderboard", descriptionText: "See how you rank against others" },
-            ]}
-          />
+          <CommandPalette items={searchItems} />
         </div>
 
         {/* Desktop right side */}

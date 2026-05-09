@@ -29,6 +29,7 @@ import Navbar from "@/components/Navbar";
 import ProgressBar from "@/components/ProgressBar";
 import PythonLogo from "@/components/PythonLogo";
 import SkillProgress from "@/components/SkillProgress";
+import { getCachedLevels, getCachedModules } from "@/lib/db/cache";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -83,9 +84,26 @@ export default async function DashboardPage() {
 
   const firstName = session.user.name?.split(" ")[0] ?? "there";
 
+  const searchItems = [
+    ...(await getCachedLevels()).map(l => ({
+      id: `l-${l.id}`,
+      title: l.title,
+      type: "level" as const,
+      href: `/level/${l.id}`,
+      descriptionText: l.description || "Level details"
+    })),
+    ...(await getCachedModules()).map(m => ({
+      id: `m-${m.id}`,
+      title: m.title,
+      type: "module" as const,
+      href: `/module/${m.id}`,
+      descriptionText: "Lesson content"
+    }))
+  ];
+
   return (
     <>
-      <Navbar />
+      <Navbar searchItems={searchItems} />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* 1. MISSION CONTROL HEADER */}
         <div className="mb-10 grid gap-6 lg:grid-cols-3">

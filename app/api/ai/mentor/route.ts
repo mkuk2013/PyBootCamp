@@ -39,8 +39,13 @@ export async function POST(req: Request) {
       - Keep it under 3 sentences.
     `;
     
-    // Try multiple model names in order of preference
-    const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"];
+    // Try exact models confirmed to be available for this key
+    const modelsToTry = [
+      "gemini-flash-latest",
+      "gemini-pro-latest",
+      "gemini-1.5-flash",
+      "gemini-1.5-pro"
+    ];
     let lastError = null;
 
     for (const modelName of modelsToTry) {
