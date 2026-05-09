@@ -27,6 +27,8 @@ import { users, achievements, userAchievements } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import Navbar from "@/components/Navbar";
 import ProgressBar from "@/components/ProgressBar";
+import PythonLogo from "@/components/PythonLogo";
+import SkillProgress from "@/components/SkillProgress";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -82,52 +84,78 @@ export default async function DashboardPage() {
   return (
     <>
       <Navbar />
-      <main className="mx-auto max-w-6xl px-6 py-10">
-        {/* Hero header */}
-        <div className="relative mb-10 overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 via-brand-700 to-cyan-700 p-8 text-white shadow-xl shadow-brand-500/20 md:p-10">
-          <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
-          <div className="absolute -bottom-16 -left-12 h-56 w-56 rounded-full bg-cyan-300/20 blur-3xl" />
-          <div className="relative">
-            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur">
-              <Sparkles className="h-3.5 w-3.5" />
-              {overall === 100
-                ? "Bootcamp Complete!"
-                : overall > 0
-                ? "Keep the streak going"
-                : "Let's get started"}
-            </div>
-            <h1 className="text-3xl font-bold md:text-4xl">
-              Welcome back, {firstName} 👋
-            </h1>
-            <p className="mt-2 max-w-xl text-brand-100">
-              {currentLevel
-                ? `You're on Level ${currentLevel.order}: ${currentLevel.title}. ${
-                    totalTasks - totalCompleted
-                  } task${totalTasks - totalCompleted === 1 ? "" : "s"} to go.`
-                : "Browse the levels below to start learning."}
-            </p>
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* 1. MISSION CONTROL HEADER */}
+        <div className="mb-10 grid gap-6 lg:grid-cols-3">
+          {/* Welcome Card */}
+          <div className="relative col-span-2 overflow-hidden rounded-[2rem] bg-slate-900 p-8 text-white shadow-2xl dark:bg-slate-900 md:p-10">
+            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand-500/20 blur-[80px]" />
+            <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-py-300/10 blur-[80px]" />
+            
+            <div className="relative z-10">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md ring-1 ring-white/20">
+                  <PythonLogo size={32} />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-black tracking-tight md:text-4xl">
+                    Mission Control
+                  </h1>
+                  <p className="text-slate-400">Welcome back, explorer {firstName}.</p>
+                </div>
+              </div>
 
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              {currentLevel && (
+              <div className="mt-8 flex flex-wrap items-center gap-4">
+                {currentLevel && (
+                  <Link
+                    href={`/level/${currentLevel.id}`}
+                    className="group inline-flex items-center gap-2 rounded-2xl bg-brand-500 px-6 py-4 text-sm font-bold text-white transition-all hover:bg-brand-600 hover:shadow-lg hover:shadow-brand-500/25 active:scale-95"
+                  >
+                    Resume: {currentLevel.title}
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                )}
                 <Link
-                  href={`/level/${currentLevel.id}`}
-                  className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-bold text-brand-700 shadow-md transition hover:bg-slate-100 active:scale-95"
+                  href="/leaderboard"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-6 py-4 text-sm font-bold text-white backdrop-blur-xl transition-all hover:bg-white/10"
                 >
-                  {overall === 0 ? "Start Learning" : "Continue Learning"}
-                  <ArrowRight className="h-4 w-4" />
+                  <Trophy className="h-4 w-4 text-py-300" />
+                  View Leaderboard
                 </Link>
-              )}
-              <Link
-                href="/leaderboard"
-                className="inline-flex items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
-              >
-                <Trophy className="h-4 w-4" /> Leaderboard
-              </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Daily Goal Card */}
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold">Daily Goal</h2>
+              <Target className="h-5 w-5 text-brand-500" />
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-end justify-between">
+                <div>
+                  <span className="text-3xl font-black text-slate-900 dark:text-white">{totalCompleted % 5}</span>
+                  <span className="text-slate-500"> / 5 tasks</span>
+                </div>
+                <span className="text-xs font-bold text-brand-600 uppercase tracking-widest">
+                  {(totalCompleted % 5) >= 5 ? "Complete!" : "In Progress"}
+                </span>
+              </div>
+              <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                <div 
+                  className="h-full bg-gradient-to-r from-brand-500 to-cyan-400 transition-all duration-1000" 
+                  style={{ width: `${Math.min(100, ((totalCompleted % 5) / 5) * 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Complete 5 tasks today to earn a <span className="font-bold text-orange-500">Bonus XP Pack!</span>
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Stats */}
+        {/* 2. STATS ROW */}
         <div className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             icon={<Target className="h-5 w-5" />}
@@ -146,7 +174,7 @@ export default async function DashboardPage() {
             <div className="mt-3">
               <ProgressBar percent={xpProgress} className="mb-1" />
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Level {userLevel} · {xpForNextLevel - currentXP} XP to Level {userLevel + 1}
+                Level {userLevel} · {xpForNextLevel - currentXP} XP to next
               </p>
             </div>
           </StatCard>
@@ -154,17 +182,10 @@ export default async function DashboardPage() {
             icon={<Flame className="h-5 w-5" />}
             color="from-orange-500 to-rose-500"
             label="Daily Streak"
-            value={streak.current === 0 ? "0 days" : `${streak.current} day${streak.current === 1 ? "" : "s"}`}
+            value={`${streak.current} days`}
           >
-            <p className="mt-2 flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-              {streak.current > 0 ? (
-                <>
-                  <Flame className="h-3 w-3 text-orange-500" />
-                  Best: {streak.longest} day{streak.longest === 1 ? "" : "s"}
-                </>
-              ) : (
-                <>Solve a task today to start a streak!</>
-              )}
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              Longest: {streak.longest} days
             </p>
           </StatCard>
           <StatCard
@@ -174,197 +195,96 @@ export default async function DashboardPage() {
             value={`${userAchievementsData.length}`}
           >
             <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-              {userAchievementsData.length === 0
-                ? "Complete tasks to unlock badges!"
-                : "Keep learning to earn more!"}
+              Unlocking your potential
             </p>
           </StatCard>
         </div>
 
-        {/* Additional detailed stats */}
-        <div className="mb-10 grid gap-4 sm:grid-cols-3">
-          <StatCard
-            icon={<TrendingUp className="h-5 w-5" />}
-            color="from-blue-500 to-indigo-500"
-            label="Tasks Completed"
-            value={`${totalCompleted} / ${totalTasks}`}
-          >
-            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-              {totalCompleted === 0
-                ? "Solve your first task to begin."
-                : `${totalTasks - totalCompleted} remaining`}
-            </p>
-          </StatCard>
-          <StatCard
-            icon={<Layers className="h-5 w-5" />}
-            color="from-cyan-500 to-blue-500"
-            label="Current Level"
-            value={currentLevel?.title ?? "—"}
-          >
-            <p className="mt-2 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
-              {currentLevel?.description ?? ""}
-            </p>
-          </StatCard>
-          <StatCard
-            icon={<CheckCircle2 className="h-5 w-5" />}
-            color="from-green-500 to-emerald-500"
-            label="Success Rate"
-            value={recent.length > 0 ? `${Math.round((recent.filter(r => r.result === "pass").length / recent.length) * 100)}%` : "—"}
-          >
-            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-              {recent.length > 0 ? "Based on recent attempts" : "No attempts yet"}
-            </p>
-          </StatCard>
-        </div>
-
-        {/* Recent activity */}
-        {recent.length > 0 && (
-          <div className="mb-10 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-lg font-bold">
-                <Activity className="h-5 w-5 text-brand-500" />
-                Recent Activity
-              </h2>
-              <span className="text-xs text-slate-500 dark:text-slate-400">
-                Last {recent.length} attempt{recent.length === 1 ? "" : "s"}
-              </span>
-            </div>
-            <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-              {recent.map((r) => (
-                <li key={r.id}>
-                  <Link
-                    href={`/task/${r.taskId}`}
-                    className="group flex items-center gap-3 py-3 transition hover:opacity-90"
+        {/* 3. MAIN CONTENT GRID */}
+        <div className="grid gap-10 lg:grid-cols-[1fr_320px]">
+          {/* Left Column: Learning Path */}
+          <div>
+            <h2 className="mb-6 flex items-center gap-2 text-2xl font-black tracking-tight">
+              <Sparkles className="h-6 w-6 text-brand-500" />
+              Learning Path
+            </h2>
+            <div className="space-y-4">
+              {allLevels.map((lv) => {
+                const completed = lv.percent === 100 && lv.totalTasks > 0;
+                return (
+                  <div
+                    key={lv.id}
+                    className={`group relative overflow-hidden rounded-[1.5rem] border p-6 transition-all ${
+                      lv.unlocked
+                        ? "border-slate-200 bg-white hover:border-brand-300 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900"
+                        : "border-slate-100 bg-slate-50/50 opacity-60 dark:border-slate-800/50 dark:bg-slate-900/40"
+                    }`}
                   >
-                    <span
-                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                        r.result === "pass"
-                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                          : "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300"
-                      }`}
-                    >
-                      {r.result === "pass" ? (
-                        <CheckCircle2 className="h-4.5 w-4.5" />
-                      ) : (
-                        <XCircle className="h-4.5 w-4.5" />
-                      )}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate text-sm font-semibold group-hover:text-brand-600 dark:group-hover:text-brand-400">
-                          {truncate(r.taskQuestion, 70)}
-                        </span>
-                        {r.result === "pass" && r.score > 0 && (
-                          <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                            +{r.score}
-                          </span>
-                        )}
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className={`flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-lg ${
+                          completed ? "bg-emerald-500 shadow-emerald-500/20" : 
+                          lv.unlocked ? "bg-brand-500 shadow-brand-500/20" : "bg-slate-300"
+                        }`}>
+                          {completed ? <CheckCircle2 className="h-7 w-7" /> : 
+                           lv.unlocked ? <Trophy className="h-7 w-7" /> : <Lock className="h-7 w-7" />}
+                        </div>
+                        <div>
+                          <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Level {lv.order}</span>
+                          <h3 className="text-xl font-bold">{lv.title}</h3>
+                          <p className="text-sm text-slate-500">{lv.description}</p>
+                        </div>
                       </div>
-                      <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                        {r.moduleTitle} · {timeAgo(r.createdAt)}
-                      </p>
+                      {lv.unlocked ? (
+                        <Link
+                          href={`/level/${lv.id}`}
+                          className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-sm font-bold text-white transition-all hover:bg-brand-600 active:scale-95 dark:bg-brand-500"
+                        >
+                          {completed ? "Review" : "Continue"}
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                      ) : (
+                        <div className="flex items-center gap-2 rounded-xl bg-slate-100 px-6 py-3 text-sm font-bold text-slate-400 dark:bg-slate-800">
+                          <Lock className="h-4 w-4" /> Locked
+                        </div>
+                      )}
                     </div>
-                    <ArrowRight className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-brand-500" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Levels list */}
-        <div className="mb-4 flex items-end justify-between">
-          <h2 className="text-2xl font-bold">Your Path</h2>
-          <span className="text-sm text-slate-500 dark:text-slate-400">
-            {allLevels.length} level{allLevels.length === 1 ? "" : "s"}
-          </span>
-        </div>
-
-        <div className="space-y-4">
-          {allLevels.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-slate-300 p-12 text-center text-slate-500 dark:border-slate-700">
-              No levels yet. Ask the admin to add some.
-            </div>
-          )}
-
-          {allLevels.map((lv) => {
-            const completed = lv.percent === 100 && lv.totalTasks > 0;
-            return (
-              <div
-                key={lv.id}
-                className={`group relative overflow-hidden rounded-2xl border p-6 transition ${
-                  lv.unlocked
-                    ? "border-slate-200 bg-white hover:-translate-y-0.5 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900"
-                    : "border-slate-200 bg-slate-50/60 opacity-75 dark:border-slate-800 dark:bg-slate-900/40"
-                }`}
-              >
-                {completed && (
-                  <div className="absolute right-0 top-0 h-20 w-20 -translate-y-10 translate-x-10 rotate-45 bg-emerald-400" />
-                )}
-
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <span
-                      className={`flex h-12 w-12 items-center justify-center rounded-xl text-white shadow-md ${
-                        completed
-                          ? "bg-gradient-to-br from-emerald-500 to-teal-500"
-                          : lv.unlocked
-                          ? "bg-gradient-to-br from-brand-500 to-cyan-500"
-                          : "bg-slate-300 dark:bg-slate-700"
-                      }`}
-                    >
-                      {completed ? (
-                        <CheckCircle2 className="h-6 w-6" />
-                      ) : lv.unlocked ? (
-                        <Trophy className="h-6 w-6" />
-                      ) : (
-                        <Lock className="h-6 w-6" />
-                      )}
-                    </span>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                          Level {lv.order}
-                        </span>
-                        {completed && (
-                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
-                            Done
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="text-lg font-bold">{lv.title}</h3>
-                      {lv.description && (
-                        <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-                          {lv.description}
-                        </p>
-                      )}
+                    <div className="mt-6">
+                      <ProgressBar percent={lv.percent} label={`${lv.completedTasks} / ${lv.totalTasks} modules`} />
                     </div>
                   </div>
+                );
+              })}
+            </div>
+          </div>
 
-                  {lv.unlocked ? (
-                    <Link
-                      href={`/level/${lv.id}`}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-brand-600 to-cyan-600 px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:from-brand-700 hover:to-cyan-700 active:scale-95"
-                    >
-                      {completed ? "Review" : "Continue"}
-                      <ArrowRight className="h-4 w-4" />
+          {/* Right Column: Sidebar */}
+          <aside className="space-y-8">
+            <SkillProgress completedCount={totalCompleted} />
+            
+            {/* Recent Activity Mini */}
+            {recent.length > 0 && (
+              <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+                <h2 className="mb-6 flex items-center gap-2 text-lg font-bold">
+                  <Activity className="h-5 w-5 text-brand-500" />
+                  Recent
+                </h2>
+                <div className="space-y-4">
+                  {recent.slice(0, 3).map((r) => (
+                    <Link key={r.id} href={`/task/${r.taskId}`} className="group block">
+                      <div className="flex items-center gap-3">
+                        <div className={`h-2 w-2 rounded-full ${r.result === 'pass' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                        <span className="truncate text-sm font-bold group-hover:text-brand-500 transition-colors">
+                          {truncate(r.taskQuestion, 20)}
+                        </span>
+                      </div>
+                      <p className="ml-5 text-[10px] text-slate-400 uppercase tracking-wider">{timeAgo(r.createdAt)}</p>
                     </Link>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                      <Lock className="h-3.5 w-3.5" /> Locked
-                    </span>
-                  )}
-                </div>
-
-                <div className="mt-5">
-                  <ProgressBar
-                    percent={lv.percent}
-                    label={`${lv.completedTasks} / ${lv.totalTasks} tasks`}
-                  />
+                  ))}
                 </div>
               </div>
-            );
-          })}
+            )}
+          </aside>
         </div>
       </main>
     </>

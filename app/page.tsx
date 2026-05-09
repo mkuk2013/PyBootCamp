@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   GraduationCap,
   Trophy,
@@ -19,8 +23,13 @@ import {
 } from "lucide-react";
 import PythonLogo from "@/components/PythonLogo";
 import FacebookFeed, { PYBOOTCAMP_FB_URL } from "@/components/FacebookFeed";
+import PageLoader from "@/components/PageLoader";
 
 export default function HomePage() {
+  // We keep useSession for the Navbar state, but we don't BLOCK the page
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <Background />
@@ -64,17 +73,27 @@ export default function HomePage() {
           >
             Community
           </a>
+          {status === "authenticated" ? (
+            <Link
+              href="/dashboard"
+              className="rounded-lg px-3 py-2 text-brand-600 font-bold transition dark:text-brand-400"
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="rounded-lg px-3 py-2 text-slate-700 transition hover:text-brand-600 dark:text-slate-200"
+            >
+              Login
+            </Link>
+          )}
+
           <Link
-            href="/login"
-            className="rounded-lg px-3 py-2 text-slate-700 transition hover:text-brand-600 dark:text-slate-200"
-          >
-            Login
-          </Link>
-          <Link
-            href="/signup"
+            href={status === "authenticated" ? "/dashboard" : "/signup"}
             className="ml-2 inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 px-4 py-2 font-semibold text-white shadow-md shadow-brand-500/30 transition hover:shadow-glow active:scale-95"
           >
-            Get Started
+            {status === "authenticated" ? "Resume Course" : "Get Started"}
             <ArrowRight className="h-4 w-4" />
           </Link>
         </nav>

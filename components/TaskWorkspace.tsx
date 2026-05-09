@@ -33,6 +33,7 @@ import CodeEditor from "@/components/CodeEditor";
 import MarkdownContent from "@/components/MarkdownContent";
 import SubmissionHistory from "@/components/SubmissionHistory";
 import Confetti from "@/components/Confetti";
+import AITutor from "@/components/AITutor";
 import {
   getPyodide,
   runPythonInBrowser,
@@ -688,6 +689,14 @@ export default function TaskWorkspace({
             )}
             Submit
           </button>
+
+          <AITutor 
+            code={code}
+            question={task.question}
+            expectedOutput={task.expectedOutput}
+            currentOutput={output}
+            hintsRevealed={hintsRevealed}
+          />
 
           <button
             onClick={onReset}
