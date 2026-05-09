@@ -13,7 +13,10 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export async function middleware(req: NextRequest) {
-  const token = await getToken({ req });
+  const token = await getToken({ 
+    req, 
+    secret: process.env.NEXTAUTH_SECRET 
+  });
   const { pathname } = req.nextUrl;
 
   // Define protection rules
@@ -27,24 +30,19 @@ export async function middleware(req: NextRequest) {
   if (isProtectedPage) {
     // 1) Redirect unauthenticated users to /login
     if (!token) {
-      const url = req.nextUrl.clone();
-      url.pathname = "/login";
-      url.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(url);
+      const loginUrl = new URL("/login", req.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
     }
 
     // 2) Admin check
     if (isAdminPage && token.role !== "admin") {
-      const url = req.nextUrl.clone();
-      url.pathname = "/dashboard";
-      return NextResponse.redirect(url);
+      return NextResponse.redirect(new URL("/dashboard", req.url));
     }
 
     // 3) Approval check — block unapproved users (except admins)
     if (token && !token.approved && token.role !== "admin" && pathname !== "/pending") {
-      const url = req.nextUrl.clone();
-      url.pathname = "/pending";
-      return NextResponse.redirect(url);
+      return NextResponse.redirect(new URL("/pending", req.url));
     }
   }
 

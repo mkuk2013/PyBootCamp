@@ -59,7 +59,6 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           name: user.name,
           email: user.email,
-          image: user.image ?? null,
           role: user.role,
           approved: user.approved,
           xp: user.xp ?? 0,
@@ -76,7 +75,6 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = user.role;
         token.approved = user.approved;
-        token.picture = user.image ?? null;
         token.xp = user.xp ?? 0;
         token.level = user.level ?? 1;
         token.streak = user.streak ?? 0;
@@ -91,7 +89,6 @@ export const authOptions: NextAuthOptions = {
           .get();
         if (fresh) {
           token.name = fresh.name;
-          token.picture = fresh.image ?? null;
           token.xp = fresh.xp ?? 0;
           token.level = fresh.level ?? 1;
           token.streak = fresh.streak ?? 0;
@@ -104,7 +101,6 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id;
         session.user.role = token.role;
         session.user.approved = token.approved;
-        session.user.image = (token.picture as string | null) ?? null;
         session.user.xp = token.xp as number;
         session.user.level = token.level as number;
         session.user.streak = token.streak as number;

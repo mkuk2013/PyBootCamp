@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
 import { Loader2, ArrowRight, Mail, Lock } from "lucide-react";
@@ -17,12 +17,12 @@ export default function LoginPage() {
 }
 
 function LoginPageInner() {
+  const router = useRouter();
   const params = useSearchParams();
   const callbackUrl = params.get("callbackUrl") || "/dashboard";
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
-  const [redirecting, setRedirecting] = useState(false);
 
   // Show success toast on logout
   useEffect(() => {
@@ -51,27 +51,16 @@ function LoginPageInner() {
       return;
     }
 
-    // Show full-screen overlay immediately so the user gets instant feedback
-    setRedirecting(true);
-    toast.success("Welcome back!");
-
-    // Use a hard redirect (window.location). Faster perceived UX in dev mode
-    // because there's no client-side route resolution; the browser itself
-    // shows its native loading indicator while the destination is fetched.
-    // Dashboard handles admin redirect server-side, so we always land there
-    // unless an explicit callbackUrl was provided.
+    // Immediate client-side navigation
     const dest =
       callbackUrl && callbackUrl !== "/dashboard" ? callbackUrl : "/dashboard";
 
-    // Tiny delay lets the toast paint a frame before navigation starts.
-    setTimeout(() => {
-      window.location.replace(dest);
-    }, 80);
+    router.push(dest);
+    router.refresh();
   }
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-white px-4 dark:bg-slate-950">
-      {redirecting && <RedirectOverlay />}
       {/* decorative bg */}
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_50%_50%_at_50%_0%,rgba(55,118,171,0.25),transparent_70%)]" />
       <div className="pointer-events-none absolute -right-20 top-20 -z-10 h-72 w-72 animate-blob rounded-full bg-py-300/30 blur-3xl" />
@@ -150,46 +139,7 @@ function LoginPageInner() {
   );
 }
 
-function RedirectOverlay() {
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/80 backdrop-blur-md dark:bg-slate-950/80">
-      <div className="flex flex-col items-center gap-6 animate-fade-in-up">
-        <div className="relative h-32 w-32">
-          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-brand-500/40 to-py-300/40 blur-2xl" />
-          <div
-            className="absolute inset-0 animate-spin-slow rounded-full"
-            style={{
-              background:
-                "conic-gradient(from 0deg, transparent 0deg, #3776AB 90deg, #FFD43B 180deg, #3776AB 270deg, transparent 360deg)",
-              WebkitMask:
-                "radial-gradient(circle, transparent 44%, black 46%, black 49%, transparent 51%)",
-              mask: "radial-gradient(circle, transparent 44%, black 46%, black 49%, transparent 51%)",
-            }}
-          />
-          <div className="absolute inset-3 flex items-center justify-center rounded-full border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
-            <PythonLogo size={56} className="animate-py-float" />
-          </div>
-        </div>
-        <div className="text-center">
-          <div className="mb-1 text-lg font-extrabold tracking-tight">
-            Loading your dashboard
-            <span className="ml-1 inline-flex gap-0.5">
-              <span className="inline-block h-1 w-1 animate-dot-bounce rounded-full bg-brand-500 [animation-delay:-0.32s]" />
-              <span className="inline-block h-1 w-1 animate-dot-bounce rounded-full bg-brand-500 [animation-delay:-0.16s]" />
-              <span className="inline-block h-1 w-1 animate-dot-bounce rounded-full bg-py-300" />
-            </span>
-          </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Welcome back! 🎉
-          </p>
-        </div>
-        <div className="relative h-1 w-56 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-          <div className="absolute inset-y-0 left-0 w-1/3 animate-progress-slide rounded-full bg-gradient-to-r from-brand-500 via-brand-400 to-py-300" />
-        </div>
-      </div>
-    </div>
-  );
-}
+
 
 function Field({
   label,
