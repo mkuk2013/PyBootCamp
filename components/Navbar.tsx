@@ -54,10 +54,7 @@ export default function Navbar({ searchItems = [] }: { searchItems?: any[] }) {
     <nav className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/75 backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/75">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
         {/* Logo */}
-        <Link
-          href={homeHref}
-          className="group flex items-center gap-2.5 transition"
-        >
+        <Link href={homeHref} className="group flex items-center gap-2.5 transition">
           <span className="relative flex h-9 w-9 items-center justify-center">
             <span className="absolute inset-0 rounded-xl bg-gradient-to-br from-brand-500/20 to-py-300/20 blur-md transition group-hover:from-brand-500/40 group-hover:to-py-300/40" />
             <PythonLogo size={32} className="relative drop-shadow-sm" />
@@ -73,97 +70,81 @@ export default function Navbar({ searchItems = [] }: { searchItems?: any[] }) {
         </div>
 
         {/* Desktop right side */}
-        <div className="hidden items-center gap-1 md:flex">
+        <div className="hidden items-center gap-3 md:flex">
           {session && !isAdmin && (
-            <>
-              <NavLink href="/dashboard" icon={<LayoutDashboard className="h-4 w-4" />}>
-                Dashboard
-              </NavLink>
-              <NavLink href="/leaderboard" icon={<Trophy className="h-4 w-4" />}>
-                Leaderboard
-              </NavLink>
-              <NavLink href="/certificate" icon={<Award className="h-4 w-4" />}>
-                Certificate
-              </NavLink>
-            </>
-          )}
-
-          {isAdmin && (
-            <Link
-              href="/admin"
-              className="mr-1 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-400 to-py-300 px-3 py-1.5 text-sm font-bold text-amber-900 shadow-sm shadow-amber-500/20 transition hover:from-amber-500 hover:to-py-400"
-            >
-              <Shield className="h-4 w-4" /> Admin
-            </Link>
-          )}
-
-          {/* XP, Level, Streak display */}
-          {session && !isAdmin && (
-            <div className="mr-1 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 dark:border-slate-700 dark:bg-slate-800">
-              <div className="flex items-center gap-1 text-xs font-semibold text-brand-600 dark:text-brand-400">
-                <Zap className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 dark:border-slate-800 dark:bg-slate-900/50">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-brand-600 dark:text-brand-400">
+                <Zap className="h-3.5 w-3.5 fill-current" />
                 <span>{session.user.xp || 0} XP</span>
               </div>
-              <div className="h-3 w-px bg-slate-300 dark:bg-slate-600" />
-              <div className="flex items-center gap-1 text-xs font-semibold text-purple-600 dark:text-purple-400">
+              <div className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
+              <div className="flex items-center gap-1.5 text-xs font-bold text-purple-600 dark:text-purple-400">
                 <span>Lvl {session.user.level || 1}</span>
               </div>
-              {(session.user.streak || 0) > 0 && (
-                <>
-                  <div className="h-3 w-px bg-slate-300 dark:bg-slate-600" />
-                  <div className="flex items-center gap-1 text-xs font-semibold text-orange-600 dark:text-orange-400">
-                    <Flame className="h-3.5 w-3.5" />
-                    <span>{session.user.streak || 0}</span>
-                  </div>
-                </>
-              )}
             </div>
           )}
 
-          {mounted && (
-            <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              aria-label="Toggle theme"
-              className="ml-1 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-brand-600 dark:hover:bg-slate-700"
-            >
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </button>
-          )}
+          <div className="flex items-center gap-1.5 border-l border-slate-200 pl-3 dark:border-slate-800">
+            {mounted && (
+              <button
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-brand-600 dark:hover:bg-slate-800"
+              >
+                {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </button>
+            )}
 
-          {session && (
-            <Link
-              href="/profile"
-              title="Your profile"
-              aria-label="Profile"
-              className="ml-1 inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 text-sm font-semibold text-slate-700 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-brand-600 dark:hover:bg-slate-700"
-            >
-              <Avatar
-                name={session.user.name || session.user.email || "P"}
-                image={session.user.image ?? null}
-              />
-              <span className="hidden sm:inline">Profile</span>
-            </Link>
-          )}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className="mr-1 inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-py-300 px-3.5 py-1.5 text-xs font-black uppercase tracking-wider text-amber-950 shadow-lg shadow-amber-500/20 transition hover:from-amber-500 hover:to-py-400 active:scale-95"
+              >
+                <Shield className="h-4 w-4" /> Admin
+              </Link>
+            )}
 
-          {session && <LogoutButton />}
+            {session && (
+              <Link
+                href="/profile"
+                className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 transition hover:border-brand-300 hover:bg-brand-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-brand-600 dark:hover:bg-slate-800"
+              >
+                <Avatar
+                  name={session.user.name || session.user.email || "P"}
+                  image={session.user.image ?? null}
+                />
+                <span className="hidden lg:inline">Profile</span>
+              </Link>
+            )}
+
+            {session && <LogoutButton />}
+          </div>
         </div>
 
         {/* Mobile right side: theme toggle + hamburger */}
-        <div className="flex items-center gap-1 md:hidden">
+        <div className="flex items-center gap-2 md:hidden">
           {mounted && (
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              aria-label="Toggle theme"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-brand-300 hover:bg-brand-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400"
             >
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
           )}
+          
+          {session && (
+            <button
+              onClick={() => signOut({ callbackUrl: "https://pybootcamp.netlify.app/login?logout=success" })}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-rose-50 text-rose-600 transition hover:bg-rose-100 dark:bg-rose-900/20 dark:text-rose-400"
+              title="Log out"
+            >
+              <LogOut className="h-4.5 w-4.5" />
+            </button>
+          )}
+
           {session && (
             <button
               onClick={() => setMenuOpen((o) => !o)}
               aria-label={menuOpen ? "Close menu" : "Open menu"}
-              aria-expanded={menuOpen}
               className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:border-brand-300 hover:bg-brand-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             >
               {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
