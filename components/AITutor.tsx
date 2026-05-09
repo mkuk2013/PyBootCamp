@@ -66,10 +66,10 @@ export default function AITutor({
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            className="absolute bottom-full right-0 mb-4 w-80 rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            className="absolute top-full right-0 mt-4 w-80 z-50 rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
           >
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">

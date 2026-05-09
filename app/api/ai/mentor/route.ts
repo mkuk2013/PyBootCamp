@@ -20,8 +20,6 @@ export async function POST(req: Request) {
       });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
     const prompt = `
       You are a friendly and expert Python Mentor for a student at PyBootCamp.
       The student is working on this problem: "${question}"
@@ -40,14 +38,28 @@ export async function POST(req: Request) {
       - If the code is empty, encourage them on how to start.
       - Keep it under 3 sentences.
     `;
+    
+    // Try multiple model names in order of preference
+    const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"];
+    let lastError = null;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    for (const modelName of modelsToTry) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+        return NextResponse.json({ message: text });
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`Model ${modelName} failed, trying next...`);
+        continue;
+      }
+    }
 
-    return NextResponse.json({ message: text });
-  } catch (error) {
-    console.error("AI Mentor Error:", error);
-    return NextResponse.json({ error: "Failed to reach AI Mentor" }, { status: 500 });
+    throw lastError || new Error("All models failed");
+  } catch (error: any) {
+    console.error("DEBUG -> AI Mentor API Error:", error);
+    return NextResponse.json({ error: `AI Mentor Error: ${error?.message || "Connection failed"}` }, { status: 500 });
   }
 }

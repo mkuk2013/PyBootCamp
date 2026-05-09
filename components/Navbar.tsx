@@ -20,8 +20,10 @@ import {
 import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
-import LogoutButton from "./LogoutButton";
+import { toast } from "react-hot-toast";
 import PythonLogo from "./PythonLogo";
+import CommandPalette from "./CommandPalette";
+import LogoutButton from "./LogoutButton";
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -64,6 +66,18 @@ export default function Navbar() {
             Py<span className="text-brand-600 dark:text-brand-400">BootCamp</span>
           </span>
         </Link>
+
+        {/* Global Search — Command Palette */}
+        <div className="hidden flex-1 justify-center px-8 lg:flex">
+          <CommandPalette 
+            items={[
+              { id: "1", title: "Variables & Types", type: "module", href: "/module/1", descriptionText: "Learn the building blocks of Python" },
+              { id: "2", title: "If / Else Statements", type: "module", href: "/module/2", descriptionText: "Control the flow of your programs" },
+              { id: "3", title: "Advanced OOP", type: "module", href: "/module/3", descriptionText: "Master Classes and Inheritance" },
+              { id: "4", title: "Global Leaderboard", type: "level", href: "/leaderboard", descriptionText: "See how you rank against others" },
+            ]}
+          />
+        </div>
 
         {/* Desktop right side */}
         <div className="hidden items-center gap-1 md:flex">

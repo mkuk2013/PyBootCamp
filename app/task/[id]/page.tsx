@@ -7,6 +7,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { tasks, modules, submissions } from "@/lib/db/schema";
 import { getNextModule } from "@/lib/progress";
+import { getCachedTask } from "@/lib/db/cache";
 import Navbar from "@/components/Navbar";
 import TaskWorkspace from "@/components/TaskWorkspace";
 
@@ -21,17 +22,32 @@ export default async function TaskPage({
     redirect("/pending");
   }
 
-  const taskId = Number(params.id);
-  if (Number.isNaN(taskId)) notFound();
+  const taskId = parseInt(params.id);
+  
+  // Use cached fetching for instant response
+  const task = await getCachedTask(taskId);
 
-  const task = await db.select().from(tasks).where(eq(tasks.id, taskId)).get();
-  if (!task) notFound();
+  if (!task) {
+    notFound();
+  }
 
-  const mod = await db
-    .select()
-    .from(modules)
-    .where(eq(modules.id, task.moduleId))
-    .get();
+  // Fetch module and submission in parallel
+  const [mod, submission] = await Promise.all([
+    db.select().from(modules).where(eq(modules.id, task.moduleId)).get(),
+    db
+      .select()
+      .from(submissions)
+      .where(
+        and(
+          eq(submissions.taskId, taskId),
+          eq(submissions.userId, session.user.id),
+          eq(submissions.result, "pass")
+        )
+      )
+      .get(),
+  ]);
+
+  if (!mod) notFound();
 
   // Sibling tasks in the same module (ordered) for prev/next navigation
   const siblings = await db

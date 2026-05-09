@@ -23,8 +23,8 @@ import {
   getRecentActivity,
 } from "@/lib/progress";
 import { db } from "@/lib/db";
-import { users, achievements, userAchievements } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { users, achievements, userAchievements, levels, modules, submissions } from "@/lib/db/schema";
+import { eq, asc, desc, sql } from "drizzle-orm";
 import Navbar from "@/components/Navbar";
 import ProgressBar from "@/components/ProgressBar";
 import PythonLogo from "@/components/PythonLogo";
@@ -36,11 +36,13 @@ export default async function DashboardPage() {
   if (session.user.role === "admin") redirect("/admin");
   if (!session.user.approved) redirect("/pending");
 
-  const [allLevels, streak, recent, user, userAchievementsData] = await Promise.all([
+  // 1. Parallel Data Fetching
+  const [user, allLevels, allModulesData, streak, recent, userAchievementsData] = await Promise.all([
+    db.select().from(users).where(eq(users.id, session.user.id)).get(),
     getLevelsWithProgress(session.user.id),
+    db.select().from(modules).orderBy(asc(modules.order)),
     getStreak(session.user.id),
     getRecentActivity(session.user.id, 6),
-    db.select().from(users).where(eq(users.id, session.user.id)).get(),
     db
       .select({
         id: achievements.id,
