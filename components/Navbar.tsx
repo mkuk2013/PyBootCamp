@@ -133,7 +133,7 @@ export default function Navbar({ searchItems = [] }: { searchItems?: any[] }) {
           
           {session && (
             <button
-              onClick={() => signOut({ callbackUrl: "https://pybootcamp.netlify.app/login?logout=success" })}
+              onClick={() => signOut({ callbackUrl: "/login?logout=success" })}
               className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-rose-50 text-rose-600 transition hover:bg-rose-100 dark:bg-rose-900/20 dark:text-rose-400"
               title="Log out"
             >
@@ -225,7 +225,7 @@ export default function Navbar({ searchItems = [] }: { searchItems?: any[] }) {
                 label="Profile"
               />
               <button
-                onClick={() => signOut({ callbackUrl: window.location.origin + "/login?logout=success" })}
+                onClick={() => signOut({ callbackUrl: "/login?logout=success" })}
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-rose-600 transition hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/20"
               >
                 <LogOut className="h-5 w-5" />
