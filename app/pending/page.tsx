@@ -12,7 +12,7 @@ export default function PendingPage() {
         <h1 className="mb-2 text-2xl font-bold">Awaiting Approval</h1>
         <p className="mb-6 text-slate-600 dark:text-slate-400">
           Your account has been created successfully but is still pending admin
-          approval. Please check back later.
+          approval. Once approved, you will receive an approval confirmation email. Please check your spam folder in case you do not see the approval message in your inbox.
         </p>
         <div className="flex flex-col gap-3">
           <button

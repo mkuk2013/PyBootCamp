@@ -64,8 +64,7 @@ export default function SignupPage() {
             Account created! 🎉
           </h1>
           <p className="mb-6 text-slate-600 dark:text-slate-400">
-            Your account is awaiting admin approval. You&apos;ll be able to log in once
-            an admin approves you.
+            Your account is awaiting admin approval. Once approved, you will receive an approval confirmation email. Please check your spam folder in case you do not see the approval message in your inbox.
           </p>
           <Link
             href="/login"
