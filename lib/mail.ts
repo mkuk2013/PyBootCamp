@@ -1,4 +1,4 @@
-// Mail Service with Nodemailer (SMTP relay setup)
+// Mail Service with Nodemailer (Brevo/SMTP setup)
 import nodemailer from "nodemailer";
 
 interface MailConfig {
@@ -20,107 +20,148 @@ const getMailConfig = (): MailConfig => ({
 export async function sendApprovalEmail(toEmail: string, userName: string) {
   const config = getMailConfig();
   const siteUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const brevoApiKey = process.env.BREVO_API_KEY;
 
+  const subject = "Your PyBootCamp Account Has Been Approved!";
+  const textContent = `Hello ${userName},\n\nYour PyBootCamp account has been successfully approved! You can now log in and access your coding dashboard at: ${siteUrl}/login\n\nBest regards,\nThe PyBootCamp Team`;
+  
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Account Approved - PyBootCamp</title>
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+          background-color: #f8fafc;
+          color: #334155;
+          margin: 0;
+          padding: 0;
+        }
+        .container {
+          max-width: 600px;
+          margin: 40px auto;
+          background: #ffffff;
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+          border: 1px solid #e2e8f0;
+        }
+        .header {
+          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+          padding: 32px;
+          text-align: center;
+        }
+        .header h1 {
+          color: #ffffff;
+          margin: 0;
+          font-size: 24px;
+          font-weight: 700;
+          letter-spacing: -0.025em;
+        }
+        .content {
+          padding: 32px;
+        }
+        .content h2 {
+          font-size: 20px;
+          font-weight: 600;
+          color: #0f172a;
+          margin-top: 0;
+        }
+        .content p {
+          line-height: 1.6;
+          font-size: 16px;
+          color: #475569;
+        }
+        .button-container {
+          text-align: center;
+          margin: 32px 0 24px;
+        }
+        .btn {
+          background-color: #3b82f6;
+          color: #ffffff !important;
+          text-decoration: none;
+          padding: 12px 32px;
+          font-weight: 600;
+          border-radius: 8px;
+          display: inline-block;
+        }
+        .footer {
+          background-color: #f8fafc;
+          padding: 24px;
+          text-align: center;
+          font-size: 14px;
+          color: #64748b;
+          border-top: 1px solid #e2e8f0;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>PyBootCamp</h1>
+        </div>
+        <div class="content">
+          <h2>Account Approved!</h2>
+          <p>Dear ${userName},</p>
+          <p>We are pleased to inform you that your PyBootCamp account has been approved by the administrator.</p>
+          <p>You can now log in to access your dashboard, start coding exercises, and track your progress.</p>
+          <div class="button-container">
+            <a href="${siteUrl}/login" class="btn">Log In to Your Account</a>
+          </div>
+          <p>If you have any questions or encounter any issues, feel free to reply to this email.</p>
+          <p>Best regards,<br>The PyBootCamp Team</p>
+        </div>
+        <div class="footer">
+          &copy; 2026 PyBootCamp. All rights reserved.
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  // 1. Try Brevo HTTP API first if BREVO_API_KEY is defined (works without SMTP activation)
+  if (brevoApiKey) {
+    try {
+      console.log(`[Mail Service] Sending email via Brevo HTTP API to: ${toEmail}`);
+      const senderEmail = config.user || "mkuk2013+01@gmail.com";
+      const senderName = config.from?.split("<")[0]?.replace(/"/g, "")?.trim() || "PyBootCamp";
+
+      const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "api-key": brevoApiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sender: { name: senderName, email: senderEmail },
+          to: [{ email: toEmail, name: userName }],
+          subject: subject,
+          htmlContent: htmlContent,
+          textContent: textContent,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Brevo API error");
+      }
+      console.log(`[Mail Service] Email sent successfully via Brevo API:`, data.messageId);
+      return { success: true, messageId: data.messageId };
+    } catch (error) {
+      console.error("[Mail Service] Brevo API Error:", error);
+      throw error;
+    }
+  }
+
+  // 2. Fallback to Nodemailer SMTP
   const mailOptions = {
     from: config.from,
     to: toEmail,
-    subject: "Your PyBootCamp Account Has Been Approved!",
-    text: `Hello ${userName},\n\nYour PyBootCamp account has been successfully approved! You can now log in and access your coding dashboard at: ${siteUrl}/login\n\nBest regards,\nThe PyBootCamp Team`,
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Account Approved - PyBootCamp</title>
-        <style>
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f8fafc;
-            color: #334155;
-            margin: 0;
-            padding: 0;
-          }
-          .container {
-            max-width: 600px;
-            margin: 40px auto;
-            background: #ffffff;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
-            border: 1px solid #e2e8f0;
-          }
-          .header {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            padding: 32px;
-            text-align: center;
-          }
-          .header h1 {
-            color: #ffffff;
-            margin: 0;
-            font-size: 24px;
-            font-weight: 700;
-            letter-spacing: -0.025em;
-          }
-          .content {
-            padding: 32px;
-          }
-          .content h2 {
-            font-size: 20px;
-            font-weight: 600;
-            color: #0f172a;
-            margin-top: 0;
-          }
-          .content p {
-            line-height: 1.6;
-            font-size: 16px;
-            color: #475569;
-          }
-          .button-container {
-            text-align: center;
-            margin: 32px 0 24px;
-          }
-          .btn {
-            background-color: #3b82f6;
-            color: #ffffff !important;
-            text-decoration: none;
-            padding: 12px 32px;
-            font-weight: 600;
-            border-radius: 8px;
-            display: inline-block;
-          }
-          .footer {
-            background-color: #f8fafc;
-            padding: 24px;
-            text-align: center;
-            font-size: 14px;
-            color: #64748b;
-            border-top: 1px solid #e2e8f0;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>PyBootCamp</h1>
-          </div>
-          <div class="content">
-            <h2>Account Approved!</h2>
-            <p>Dear ${userName},</p>
-            <p>We are pleased to inform you that your PyBootCamp account has been approved by the administrator.</p>
-            <p>You can now log in to access your dashboard, start coding exercises, and track your progress.</p>
-            <div class="button-container">
-              <a href="${siteUrl}/login" class="btn">Log In to Your Account</a>
-            </div>
-            <p>If you have any questions or encounter any issues, feel free to reply to this email.</p>
-            <p>Best regards,<br>The PyBootCamp Team</p>
-          </div>
-          <div class="footer">
-            &copy; 2026 PyBootCamp. All rights reserved.
-          </div>
-        </div>
-      </body>
-      </html>
-    `,
+    subject: subject,
+    text: textContent,
+    html: htmlContent,
   };
 
   // Check if SMTP is configured
@@ -145,10 +186,10 @@ export async function sendApprovalEmail(toEmail: string, userName: string) {
     });
 
     const info = await transporter.sendMail(mailOptions);
-    console.log(`[Mail Service] Email sent successfully: ${info.messageId}`);
+    console.log(`[Mail Service] Email sent successfully via SMTP: ${info.messageId}`);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error("[Mail Service] Error sending email:", error);
+    console.error("[Mail Service] Error sending email via SMTP:", error);
     throw error;
   }
 }
