@@ -9,6 +9,8 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/admin";
 
+import { sendApprovalEmail } from "@/lib/mail";
+
 const patchSchema = z.object({
   approved: z.boolean().optional(),
   role: z.enum(["user", "admin"]).optional(),
@@ -26,7 +28,23 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
+  // Fetch the user before updating to check previous approval status
+  const existingUser = await db.select().from(users).where(eq(users.id, params.id)).get();
+  if (!existingUser) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
   await db.update(users).set(parsed.data).where(eq(users.id, params.id));
+
+  // Send email if user is now approved and was not previously approved
+  if (parsed.data.approved === true && !existingUser.approved) {
+    try {
+      await sendApprovalEmail(existingUser.email, existingUser.name);
+    } catch (mailError) {
+      console.error(`Failed to send approval email to ${existingUser.email}:`, mailError);
+    }
+  }
+
   return NextResponse.json({ ok: true });
 }
 

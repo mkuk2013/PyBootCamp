@@ -3,6 +3,8 @@ import { eq, and } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 
+import { sendApprovalEmail } from "@/lib/mail";
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const secretParam = searchParams.get("secret");
@@ -20,7 +22,26 @@ export async function GET(req: Request) {
   }
 
   try {
-    // Approve all users with role 'user' who are currently not approved
+    // 1. Fetch all pending users before updating
+    const pendingUsersList = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.approved, false),
+          eq(users.role, "user")
+        )
+      )
+      .all();
+
+    if (pendingUsersList.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: "No pending users to auto-approve.",
+      });
+    }
+
+    // 2. Approve them in the database
     const result = await db
       .update(users)
       .set({ approved: true })
@@ -31,9 +52,18 @@ export async function GET(req: Request) {
         )
       );
 
+    // 3. Send approval emails to all auto-approved users
+    for (const u of pendingUsersList) {
+      try {
+        await sendApprovalEmail(u.email, u.name);
+      } catch (mailError) {
+        console.error(`Failed to send auto-approval email to ${u.email}:`, mailError);
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      message: "Pending users successfully auto-approved.",
+      message: `${pendingUsersList.length} pending users successfully auto-approved.`,
       result,
     });
   } catch (error: any) {
