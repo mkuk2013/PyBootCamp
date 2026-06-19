@@ -1,3 +1,4 @@
+// AI Mentor API Route
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
