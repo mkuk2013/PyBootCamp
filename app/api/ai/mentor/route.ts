@@ -41,10 +41,11 @@ export async function POST(req: Request) {
     
     // Try exact models confirmed to be available for this key
     const modelsToTry = [
+      "gemini-3.5-flash",
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
       "gemini-flash-latest",
-      "gemini-pro-latest",
-      "gemini-1.5-flash",
-      "gemini-1.5-pro"
+      "gemini-pro-latest"
     ];
     let lastError = null;
 
