@@ -1,4 +1,4 @@
-// Mail Service with Nodemailer
+// Mail Service with Nodemailer (SMTP relay setup)
 import nodemailer from "nodemailer";
 
 interface MailConfig {
