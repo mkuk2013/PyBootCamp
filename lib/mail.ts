@@ -1,3 +1,4 @@
+// Mail Service with Nodemailer
 import nodemailer from "nodemailer";
 
 interface MailConfig {
