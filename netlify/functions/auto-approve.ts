@@ -1,10 +1,22 @@
 export default async (req: Request) => {
-  const siteUrl = process.env.URL || "http://localhost:3000";
+  // In Netlify production, process.env.URL is automatically set to the site's live URL.
+  // We prioritize process.env.URL (unless it is localhost) to avoid issues if NEXTAUTH_URL
+  // is misconfigured to localhost in production.
+  const siteUrl = (process.env.URL && !process.env.URL.includes("localhost"))
+    ? process.env.URL
+    : (process.env.NEXTAUTH_URL || "http://localhost:3000");
+
   const cronSecret = process.env.CRON_SECRET || process.env.NEXTAUTH_SECRET || "";
 
   try {
     console.log(`Triggering auto-approve API at: ${siteUrl}/api/cron/auto-approve`);
-    const res = await fetch(`${siteUrl}/api/cron/auto-approve?secret=${cronSecret}`);
+    
+    const res = await fetch(`${siteUrl}/api/cron/auto-approve`, {
+      headers: {
+        Authorization: `Bearer ${cronSecret}`,
+      },
+    });
+    
     const data = await res.json();
     console.log("Auto-approve API response:", data);
     return new Response(JSON.stringify(data), {
