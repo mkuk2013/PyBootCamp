@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { modules } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/admin";
+import { revalidateModules } from "@/lib/db/cache";
 
 const schema = z.object({
   levelId: z.number().int().positive(),
@@ -19,5 +20,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid body", issues: parsed.error.flatten() }, { status: 400 });
   }
   const [row] = await db.insert(modules).values(parsed.data).returning();
+  revalidateModules();
   return NextResponse.json(row, { status: 201 });
 }

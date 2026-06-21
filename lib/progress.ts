@@ -10,6 +10,7 @@
 import { eq, and, inArray, desc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { levels, modules, tasks, submissions } from "@/lib/db/schema";
+import { getCachedLevels, getCachedModules, getCachedAllTasks } from "@/lib/db/cache";
 
 export type LevelProgress = {
   id: number;
@@ -29,24 +30,21 @@ export async function getLevelsWithProgress(
   userId: string
 ): Promise<LevelProgress[]> {
   // 1) all levels (sorted by order)
-  const allLevels = await db.select().from(levels).orderBy(levels.order);
+  const allLevels = await getCachedLevels();
 
   if (allLevels.length === 0) return [];
 
   const levelIds = allLevels.map((l) => l.id);
 
   // 2) all modules belonging to these levels
-  const allModules = await db
-    .select()
-    .from(modules)
-    .where(inArray(modules.levelId, levelIds));
+  const allModulesData = await getCachedModules();
+  const allModules = allModulesData.filter((m) => levelIds.includes(m.levelId));
 
   const moduleIds = allModules.map((m) => m.id);
 
   // 3) all tasks for those modules
-  const allTasks = moduleIds.length
-    ? await db.select().from(tasks).where(inArray(tasks.moduleId, moduleIds))
-    : [];
+  const cachedTasks = await getCachedAllTasks();
+  const allTasks = cachedTasks.filter((t) => moduleIds.includes(t.moduleId));
 
   // 4) user's passing submissions (distinct task ids)
   const passedTaskIds = new Set<number>();
@@ -140,19 +138,14 @@ export async function getModulesWithProgress(
   levelId: number,
   userId: string
 ): Promise<ModuleProgress[]> {
-  const mods = await db
-    .select()
-    .from(modules)
-    .where(eq(modules.levelId, levelId))
-    .orderBy(modules.order);
+  const allMods = await getCachedModules();
+  const mods = allMods.filter((m) => m.levelId === levelId);
 
   if (mods.length === 0) return [];
 
   const moduleIds = mods.map((m) => m.id);
-  const allTasks = await db
-    .select()
-    .from(tasks)
-    .where(inArray(tasks.moduleId, moduleIds));
+  const cachedTasks = await getCachedAllTasks();
+  const allTasks = cachedTasks.filter((t) => moduleIds.includes(t.moduleId));
 
   const taskIds = allTasks.map((t) => t.id);
   const passedTaskIds = new Set<number>();

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { levels } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/admin";
+import { revalidateLevels } from "@/lib/db/cache";
 
 const schema = z.object({
   title: z.string().min(1).max(100),
@@ -25,5 +26,6 @@ export async function POST(req: Request) {
       order: parsed.data.order,
     })
     .returning();
+  revalidateLevels();
   return NextResponse.json(row, { status: 201 });
 }

@@ -56,6 +56,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+        <link rel="prefetch" href="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js" />
+      </head>
       <body className="flex min-h-screen flex-col font-sans antialiased">
         <Suspense fallback={null}>
           <NavProgress />

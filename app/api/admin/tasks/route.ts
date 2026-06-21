@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { tasks } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/admin";
+import { revalidateTask } from "@/lib/db/cache";
 
 const schema = z.object({
   moduleId: z.number().int().positive(),
@@ -37,5 +38,6 @@ export async function POST(req: Request) {
       order: parsed.data.order,
     })
     .returning();
+  revalidateTask(row.id);
   return NextResponse.json(row, { status: 201 });
 }

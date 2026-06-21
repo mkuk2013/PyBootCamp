@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { tasks } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/admin";
+import { revalidateTask } from "@/lib/db/cache";
 
 const schema = z.object({
   moduleId: z.number().int().positive().optional(),
@@ -28,6 +29,7 @@ export async function PATCH(
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   await db.update(tasks).set(parsed.data).where(eq(tasks.id, id));
+  revalidateTask(id);
   return NextResponse.json({ ok: true });
 }
 
@@ -40,5 +42,7 @@ export async function DELETE(
   const id = Number(params.id);
   if (Number.isNaN(id)) return NextResponse.json({ error: "Bad id" }, { status: 400 });
   await db.delete(tasks).where(eq(tasks.id, id));
+  revalidateTask(id);
   return NextResponse.json({ ok: true });
 }
+

@@ -30,7 +30,7 @@ import ProgressBar from "@/components/ProgressBar";
 import PythonLogo from "@/components/PythonLogo";
 import SkillProgress from "@/components/SkillProgress";
 import AchievementsGallery from "@/components/AchievementsGallery";
-import { getCachedLevels, getCachedModules } from "@/lib/db/cache";
+import { getCachedLevels, getCachedModules, getCachedAchievements } from "@/lib/db/cache";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -39,10 +39,9 @@ export default async function DashboardPage() {
   if (!session.user.approved) redirect("/pending");
 
   // 1. Parallel Data Fetching
-  const [user, allLevels, allModulesData, streak, recent, userAchievementsData, allAchievements] = await Promise.all([
+  const [user, allLevels, streak, recent, userAchievementsData, allAchievements] = await Promise.all([
     db.select().from(users).where(eq(users.id, session.user.id)).get(),
     getLevelsWithProgress(session.user.id),
-    db.select().from(modules).orderBy(asc(modules.order)),
     getStreak(session.user.id),
     getRecentActivity(session.user.id, 6),
     db
@@ -57,7 +56,7 @@ export default async function DashboardPage() {
       .innerJoin(achievements, eq(userAchievements.achievementId, achievements.id))
       .where(eq(userAchievements.userId, session.user.id))
       .orderBy(userAchievements.unlockedAt),
-    db.select().from(achievements).orderBy(achievements.xpRequired),
+    getCachedAchievements(),
   ]);
 
   if (!user) redirect("/login");
