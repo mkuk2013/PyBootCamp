@@ -11,6 +11,8 @@ export default async function AdminUsersPage() {
       email: users.email,
       role: users.role,
       approved: users.approved,
+      xp: users.xp,
+      level: users.level,
       createdAt: users.createdAt,
     })
     .from(users)

@@ -14,6 +14,8 @@ import { sendApprovalEmail } from "@/lib/mail";
 const patchSchema = z.object({
   approved: z.boolean().optional(),
   role: z.enum(["user", "admin"]).optional(),
+  xp: z.number().int().min(0).optional(),
+  level: z.number().int().min(1).max(10).optional(),
 });
 
 export async function PATCH(

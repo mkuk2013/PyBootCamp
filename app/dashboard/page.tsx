@@ -29,6 +29,7 @@ import Navbar from "@/components/Navbar";
 import ProgressBar from "@/components/ProgressBar";
 import PythonLogo from "@/components/PythonLogo";
 import SkillProgress from "@/components/SkillProgress";
+import AchievementsGallery from "@/components/AchievementsGallery";
 import { getCachedLevels, getCachedModules } from "@/lib/db/cache";
 
 export default async function DashboardPage() {
@@ -38,7 +39,7 @@ export default async function DashboardPage() {
   if (!session.user.approved) redirect("/pending");
 
   // 1. Parallel Data Fetching
-  const [user, allLevels, allModulesData, streak, recent, userAchievementsData] = await Promise.all([
+  const [user, allLevels, allModulesData, streak, recent, userAchievementsData, allAchievements] = await Promise.all([
     db.select().from(users).where(eq(users.id, session.user.id)).get(),
     getLevelsWithProgress(session.user.id),
     db.select().from(modules).orderBy(asc(modules.order)),
@@ -50,14 +51,24 @@ export default async function DashboardPage() {
         name: achievements.name,
         icon: achievements.icon,
         badgeColor: achievements.badgeColor,
+        unlockedAt: userAchievements.unlockedAt,
       })
       .from(userAchievements)
       .innerJoin(achievements, eq(userAchievements.achievementId, achievements.id))
       .where(eq(userAchievements.userId, session.user.id))
       .orderBy(userAchievements.unlockedAt),
+    db.select().from(achievements).orderBy(achievements.xpRequired),
   ]);
 
   if (!user) redirect("/login");
+
+  const unlockedIds = userAchievementsData.map((u) => u.id);
+  const unlockedAtMap = userAchievementsData.reduce((acc, curr) => {
+    acc[curr.id] = curr.unlockedAt instanceof Date 
+      ? curr.unlockedAt.toISOString() 
+      : new Date(curr.unlockedAt).toISOString();
+    return acc;
+  }, {} as Record<number, string>);
 
   const totalTasks = allLevels.reduce((s, l) => s + l.totalTasks, 0);
   const totalCompleted = allLevels.reduce((s, l) => s + l.completedTasks, 0);
@@ -208,16 +219,11 @@ export default async function DashboardPage() {
               Longest: {streak.longest} days
             </p>
           </StatCard>
-          <StatCard
-            icon={<Award className="h-5 w-5" />}
-            color="from-emerald-500 to-teal-500"
-            label="Achievements"
-            value={`${userAchievementsData.length}`}
-          >
-            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-              Unlocking your potential
-            </p>
-          </StatCard>
+          <AchievementsGallery
+            allAchievements={allAchievements}
+            unlockedIds={unlockedIds}
+            unlockedAtMap={unlockedAtMap}
+          />
         </div>
 
         {/* 3. MAIN CONTENT GRID */}

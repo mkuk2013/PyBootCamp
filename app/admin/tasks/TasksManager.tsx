@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
-import { Plus, Pencil, Trash2, Save, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Save, X, ArrowUp, ArrowDown } from "lucide-react";
+import MarkdownContent from "@/components/MarkdownContent";
 
 type Task = {
   id: number;
@@ -30,6 +31,7 @@ export default function TasksManager({
   const router = useRouter();
   const [editing, setEditing] = useState<Task | null>(null);
   const [creating, setCreating] = useState(false);
+  const [selectedModule, setSelectedModule] = useState<number | "all">("all");
   const [busy, setBusy] = useState(false);
 
   async function save(payload: Partial<Task>, id?: number) {
@@ -80,15 +82,32 @@ export default function TasksManager({
     hard: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
   };
 
+  const filteredTasks = selectedModule === "all"
+    ? initialTasks
+    : initialTasks.filter((t) => t.moduleId === selectedModule);
+
   return (
     <div className="space-y-4">
-      <button
-        onClick={() => setCreating(true)}
-        disabled={modules.length === 0}
-        className="flex items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
-      >
-        <Plus className="h-4 w-4" /> Add Task
-      </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          onClick={() => setCreating(true)}
+          disabled={modules.length === 0}
+          className="flex items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+        >
+          <Plus className="h-4 w-4" /> Add Task
+        </button>
+
+        <select
+          value={selectedModule}
+          onChange={(e) => setSelectedModule(e.target.value === "all" ? "all" : Number(e.target.value))}
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 text-slate-900 dark:text-slate-100 focus:border-brand-500 focus:outline-none"
+        >
+          <option value="all">All Modules</option>
+          {modules.map((m) => (
+            <option key={m.id} value={m.id}>{m.title}</option>
+          ))}
+        </select>
+      </div>
       {modules.length === 0 && (
         <p className="text-sm text-amber-600">⚠️ Create a Module first.</p>
       )}
@@ -105,7 +124,7 @@ export default function TasksManager({
       )}
 
       <div className="space-y-3">
-        {initialTasks.map((t) =>
+        {filteredTasks.map((t) =>
           editing?.id === t.id ? (
             <div key={t.id} className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
               <TaskForm
@@ -135,7 +154,25 @@ export default function TasksManager({
                   Expected: <code>{t.expectedOutput.slice(0, 80)}</code>
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-1">
+                  <button
+                    disabled={busy}
+                    onClick={() => save({ order: Math.max(1, t.order - 1) }, t.id)}
+                    className="rounded border border-slate-200 p-1 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-900"
+                    title="Move Up"
+                  >
+                    <ArrowUp className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    disabled={busy}
+                    onClick={() => save({ order: t.order + 1 }, t.id)}
+                    className="rounded border border-slate-200 p-1 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-900"
+                    title="Move Down"
+                  >
+                    <ArrowDown className="h-3.5 w-3.5" />
+                  </button>
+                </div>
                 <button
                   onClick={() => setEditing(t)}
                   className="rounded-md border border-slate-300 p-1.5 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
@@ -152,9 +189,9 @@ export default function TasksManager({
             </div>
           )
         )}
-        {initialTasks.length === 0 && !creating && (
+        {filteredTasks.length === 0 && !creating && (
           <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-400 dark:border-slate-700">
-            No tasks yet.
+            No matching tasks found.
           </div>
         )}
       </div>
@@ -194,6 +231,7 @@ function TaskForm({
   const [examples, setExamples] = useState(initial?.examples ?? "");
   const [difficulty, setDifficulty] = useState<Task["difficulty"]>(initial?.difficulty ?? "easy");
   const [order, setOrder] = useState<number>(initial?.order ?? 1);
+  const [showPreview, setShowPreview] = useState(false);
 
   return (
     <form
@@ -242,14 +280,32 @@ function TaskForm({
         />
       </div>
 
-      <textarea
-        required
-        value={question}
-        onChange={(e) => setQuestion(e.target.value)}
-        rows={3}
-        className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
-        placeholder="Question / problem statement"
-      />
+      <div className="flex justify-between items-center mb-1">
+        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Problem Description</label>
+        <button
+          type="button"
+          onClick={() => setShowPreview(!showPreview)}
+          className="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline"
+        >
+          {showPreview ? "Hide Preview" : "Show Live Preview"}
+        </button>
+      </div>
+      
+      <div className="grid gap-3 md:grid-cols-2">
+        <textarea
+          required
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          rows={4}
+          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+          placeholder="Question / problem statement"
+        />
+        {showPreview && (
+          <div className="rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950/40 overflow-auto max-h-[140px] text-xs">
+            <MarkdownContent content={question || "*Nothing to preview*"} />
+          </div>
+        )}
+      </div>
       <textarea
         value={starterCode}
         onChange={(e) => setStarterCode(e.target.value)}
@@ -279,13 +335,24 @@ function TaskForm({
         className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 font-mono text-xs dark:border-slate-700 dark:bg-slate-900"
         placeholder='Optional JSON hints (revealed one-by-one): ["Try a for loop", "Use input().split()", "Convert each item with int()"]'
       />
-      <textarea
-        value={examples}
-        onChange={(e) => setExamples(e.target.value)}
-        rows={5}
-        className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 font-mono text-xs dark:border-slate-700 dark:bg-slate-900"
-        placeholder={`Optional Markdown examples (worked code samples). Example:\n\n### Example 1\n\n\u0060\u0060\u0060python\nfor i in range(3):\n    print(i)\n\u0060\u0060\u0060\nOutput:\n\u0060\u0060\u0060\n0\n1\n2\n\u0060\u0060\u0060`}
-      />
+      <div className="flex justify-between items-center mb-1">
+        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Worked Examples (optional)</label>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <textarea
+          value={examples}
+          onChange={(e) => setExamples(e.target.value)}
+          rows={5}
+          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 font-mono text-xs dark:border-slate-700 dark:bg-slate-900"
+          placeholder={`Worked code samples. Example:\n\n### Example 1\n\n\`\`\`python\nfor i in range(3):\n    print(i)\n\`\`\``}
+        />
+        {showPreview && (
+          <div className="rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950/40 overflow-auto max-h-[140px] text-xs">
+            <MarkdownContent content={examples || "*No examples to preview*"} />
+          </div>
+        )}
+      </div>
 
       <div className="flex gap-2">
         <button

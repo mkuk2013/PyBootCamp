@@ -28,12 +28,14 @@ import {
   Maximize2,
   Minimize2,
   Save,
+  Settings,
 } from "lucide-react";
 import CodeEditor from "@/components/CodeEditor";
 import MarkdownContent from "@/components/MarkdownContent";
 import SubmissionHistory from "@/components/SubmissionHistory";
 import Confetti from "@/components/Confetti";
 import AITutor from "@/components/AITutor";
+import EditorSettings, { EditorPreferences } from "@/components/EditorSettings";
 import {
   getPyodide,
   runPythonInBrowser,
@@ -125,6 +127,45 @@ export default function TaskWorkspace({
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [confettiKey, setConfettiKey] = useState(0);
 
+  const [editorPreferences, setEditorPreferences] = useState<EditorPreferences>({
+    theme: "vs-dark",
+    fontSize: 14,
+    autocomplete: true,
+  });
+  const [showSettings, setShowSettings] = useState(false);
+  const [timeElapsed, setTimeElapsed] = useState(0);
+  const [submissionDetail, setSubmissionDetail] = useState<any | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("pybc:editor_prefs");
+      if (saved) {
+        setEditorPreferences(JSON.parse(saved));
+      }
+    } catch {}
+  }, []);
+
+  const handlePreferencesChange = (newPrefs: EditorPreferences) => {
+    setEditorPreferences(newPrefs);
+    try {
+      localStorage.setItem("pybc:editor_prefs", JSON.stringify(newPrefs));
+    } catch {}
+  };
+
+  useEffect(() => {
+    setTimeElapsed(0);
+    const interval = setInterval(() => {
+      setTimeElapsed((t) => t + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [task.id]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
   // Restore saved code from localStorage on mount
   useEffect(() => {
     try {
@@ -208,6 +249,7 @@ export default function TaskWorkspace({
     }
     setRunning(true);
     setOutput("");
+    setSubmissionDetail(null);
     try {
       // For Run, feed the user-editable stdin from the Custom Input panel.
       // (Submit ignores this and uses each test case's own input.)
@@ -273,6 +315,7 @@ export default function TaskWorkspace({
       }
 
       setVerdict(data.pass ? "pass" : "fail");
+      setSubmissionDetail(null);
 
       if (data.pass) {
         const wasFirstTime = !initiallyCompleted && verdict !== "pass";
@@ -303,6 +346,7 @@ export default function TaskWorkspace({
         const failedDetail = data.detail?.find(
           (d: { pass: boolean }) => !d.pass
         );
+        setSubmissionDetail(failedDetail || null);
         const expected = failedDetail?.expected ?? "";
         const got = failedDetail?.got ?? "";
         const stderr = failedDetail?.stderr ?? "";
@@ -708,6 +752,20 @@ export default function TaskWorkspace({
             Reset
           </button>
 
+          <button
+            onClick={() => setShowSettings(true)}
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 transition hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+            title="Editor settings"
+          >
+            <Settings className="h-4 w-4" />
+            <span className="hidden sm:inline">Settings</span>
+          </button>
+
+          <div className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 shadow-inner">
+            <Clock className="h-4 w-4 text-brand-500 animate-pulse" />
+            <span className="font-mono">{formatTime(timeElapsed)}</span>
+          </div>
+
           <SubmissionHistory taskId={task.id} onRestore={(c) => setCode(c)} />
 
           {/* Toggle stdin panel button — only show for input-based tasks when panel is hidden */}
@@ -858,6 +916,9 @@ export default function TaskWorkspace({
             value={code}
             onChange={setCode}
             height={fullscreen ? "calc(100vh - 50px)" : "clamp(280px, 50vh, 520px)"}
+            theme={editorPreferences.theme}
+            fontSize={editorPreferences.fontSize}
+            autocomplete={editorPreferences.autocomplete}
           />
           <div className="hidden border-t border-slate-200 bg-slate-50 px-4 py-1.5 text-[11px] text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 sm:block">
             <kbd className="rounded border border-slate-300 bg-white px-1 font-mono text-[10px] dark:border-slate-600 dark:bg-slate-800">Ctrl</kbd>
@@ -926,8 +987,44 @@ export default function TaskWorkspace({
               </span>
             )}
           </div>
-          <pre className="min-h-[140px] max-h-[400px] overflow-auto whitespace-pre-wrap p-4 font-mono text-sm leading-relaxed">
-            {output || (
+          <div className="min-h-[140px] max-h-[400px] overflow-auto p-4 font-mono text-sm leading-relaxed">
+            {submissionDetail ? (
+              <div className="space-y-4 font-sans text-sm">
+                <p className="text-rose-500 dark:text-rose-400 font-bold flex items-center gap-1.5">
+                  <XCircle className="h-4.5 w-4.5" />
+                  Test Case {submissionDetail.idx} Failed
+                </p>
+                {submissionDetail.stderr ? (
+                  <div className="rounded-lg bg-rose-950/40 border border-rose-900/50 p-3 font-mono text-xs text-rose-300">
+                    <div className="font-bold mb-1 uppercase tracking-wider text-rose-400 text-[10px]">Execution Error (stderr):</div>
+                    <pre className="whitespace-pre-wrap leading-relaxed">{submissionDetail.stderr}</pre>
+                  </div>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-lg border border-emerald-950 bg-emerald-950/20 p-3">
+                      <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-1.5">Expected Output</div>
+                      <pre className="font-mono text-xs leading-relaxed text-emerald-300 whitespace-pre-wrap bg-slate-950/45 p-2 rounded border border-slate-900">
+                        {submissionDetail.expected || "(empty)"}
+                      </pre>
+                    </div>
+                    <div className="rounded-lg border border-rose-950 bg-rose-950/20 p-3">
+                      <div className="text-[10px] font-bold text-rose-400 uppercase tracking-wider mb-1.5">Your Output</div>
+                      <pre className="font-mono text-xs leading-relaxed text-rose-300 whitespace-pre-wrap bg-slate-950/45 p-2 rounded border border-slate-900">
+                        {submissionDetail.got || "(empty)"}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+                {submissionDetail.diff && (
+                  <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-3 font-mono text-xs text-slate-300">
+                    <div className="font-bold text-slate-400 mb-1 uppercase tracking-wider text-[10px]">Mismatch Details:</div>
+                    <div className="text-amber-300 leading-relaxed whitespace-pre-wrap">{submissionDetail.diff}</div>
+                  </div>
+                )}
+              </div>
+            ) : output ? (
+              <pre className="whitespace-pre-wrap">{output}</pre>
+            ) : (
               <span className="text-slate-500">
                 {pyReady
                   ? "Click Run to execute your code, or Submit to grade against test cases."
@@ -938,10 +1035,17 @@ export default function TaskWorkspace({
                   : ""}
               </span>
             )}
-          </pre>
+          </div>
         </div>
       </section>
     </div>
+    {showSettings && (
+      <EditorSettings
+        preferences={editorPreferences}
+        onPreferencesChange={handlePreferencesChange}
+        onClose={() => setShowSettings(false)}
+      />
+    )}
     </>
   );
 }
