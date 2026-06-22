@@ -19,7 +19,7 @@ export default function LoginPage() {
 function LoginPageInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const callbackUrl = params.get("callbackUrl") || "/dashboard";
+  const callbackUrl = params.get("callbackUrl") || "/dashboard?resume=true";
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
@@ -53,7 +53,9 @@ function LoginPageInner() {
 
     // Immediate client-side navigation
     const dest =
-      callbackUrl && callbackUrl !== "/dashboard" ? callbackUrl : "/dashboard";
+      callbackUrl && callbackUrl !== "/dashboard" && callbackUrl !== "/dashboard?resume=true"
+        ? callbackUrl
+        : "/dashboard?resume=true";
 
     router.push(dest);
     router.refresh();

@@ -90,7 +90,7 @@ export default function HomePage() {
           )}
 
           <Link
-            href={status === "authenticated" ? "/dashboard" : "/signup"}
+            href={status === "authenticated" ? "/dashboard?resume=true" : "/signup"}
             className="ml-2 inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 px-4 py-2 font-semibold text-white shadow-md shadow-brand-500/30 transition hover:shadow-glow active:scale-95"
           >
             {status === "authenticated" ? "Resume Course" : "Get Started"}

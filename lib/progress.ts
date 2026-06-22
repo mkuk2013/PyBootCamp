@@ -10,6 +10,7 @@
 import { eq, and, inArray, desc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { levels, modules, tasks, submissions } from "@/lib/db/schema";
+import type { Level, Module, Task } from "@/lib/db/schema";
 import { getCachedLevels, getCachedModules, getCachedAllTasks } from "@/lib/db/cache";
 
 export type LevelProgress = {
@@ -371,4 +372,91 @@ export async function getPassedTaskIds(
     );
   rows.forEach((r) => out.add(r.taskId));
   return out;
+}
+
+export type ResumeData = {
+  task: Task | null;
+  module: Module | null;
+  level: Level | null;
+  position: number;
+  totalTasks: number;
+};
+
+/**
+ * Returns the task the user should resume, along with its module and level context.
+ * The resume task is the first task (ordered by Level -> Module -> Task)
+ * that the user has not yet passed.
+ */
+export async function getResumeTask(
+  userId: string
+): Promise<ResumeData | null> {
+  const allLevels = await getCachedLevels();
+  if (allLevels.length === 0) return null;
+
+  const allModules = await getCachedModules();
+  if (allModules.length === 0) return null;
+
+  const allTasks = await getCachedAllTasks();
+  if (allTasks.length === 0) return null;
+
+  // 1) Get user's passing task IDs
+  const taskIds = allTasks.map((t) => t.id);
+  const passedTaskIds = new Set<number>();
+  const passed = await db
+    .select({ taskId: submissions.taskId })
+    .from(submissions)
+    .where(
+      and(
+        eq(submissions.userId, userId),
+        eq(submissions.result, "pass"),
+        inArray(submissions.taskId, taskIds)
+      )
+    );
+  passed.forEach((p) => passedTaskIds.add(p.taskId));
+
+  // 2) Sort all tasks based on Level, Module, and Task order
+  const levelOrderMap = new Map(allLevels.map((l) => [l.id, l.order]));
+  const moduleMap = new Map(allModules.map((m) => [m.id, m]));
+
+  const sortedTasks = [...allTasks].sort((a, b) => {
+    const modA = moduleMap.get(a.moduleId);
+    const modB = moduleMap.get(b.moduleId);
+    if (!modA || !modB) return 0;
+    const lvlAOrder = levelOrderMap.get(modA.levelId) ?? 0;
+    const lvlBOrder = levelOrderMap.get(modB.levelId) ?? 0;
+    if (lvlAOrder !== lvlBOrder) return lvlAOrder - lvlBOrder;
+    if (modA.order !== modB.order) return modA.order - modB.order;
+    if (a.order !== b.order) return a.order - b.order;
+    return a.id - b.id;
+  });
+
+  // 3) Find the first task in sorted order that has not been passed
+  const resumeTask = sortedTasks.find((t) => !passedTaskIds.has(t.id)) ?? null;
+
+  if (!resumeTask) {
+    return {
+      task: null,
+      module: null,
+      level: null,
+      position: 0,
+      totalTasks: 0,
+    };
+  }
+
+  const resumeModule = moduleMap.get(resumeTask.moduleId) ?? null;
+  const resumeLevel = resumeModule
+    ? allLevels.find((l) => l.id === resumeModule.levelId) ?? null
+    : null;
+
+  // Find position in module
+  const moduleTasks = sortedTasks.filter((t) => t.moduleId === resumeTask.moduleId);
+  const position = moduleTasks.findIndex((t) => t.id === resumeTask.id) + 1;
+
+  return {
+    task: resumeTask,
+    module: resumeModule,
+    level: resumeLevel,
+    position,
+    totalTasks: moduleTasks.length,
+  };
 }

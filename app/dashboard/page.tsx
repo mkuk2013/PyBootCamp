@@ -21,6 +21,7 @@ import {
   getLevelsWithProgress,
   getStreak,
   getRecentActivity,
+  getResumeTask,
 } from "@/lib/progress";
 import { db } from "@/lib/db";
 import { users, achievements, userAchievements, levels, modules, submissions } from "@/lib/db/schema";
@@ -32,14 +33,18 @@ import SkillProgress from "@/components/SkillProgress";
 import AchievementsGallery from "@/components/AchievementsGallery";
 import { getCachedLevels, getCachedModules, getCachedAchievements } from "@/lib/db/cache";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
   if (session.user.role === "admin") redirect("/admin");
   if (!session.user.approved) redirect("/pending");
 
   // 1. Parallel Data Fetching
-  const [user, allLevels, streak, recent, userAchievementsData, allAchievements] = await Promise.all([
+  const [user, allLevels, streak, recent, userAchievementsData, allAchievements, resumeData] = await Promise.all([
     db.select().from(users).where(eq(users.id, session.user.id)).get(),
     getLevelsWithProgress(session.user.id),
     getStreak(session.user.id),
@@ -57,9 +62,15 @@ export default async function DashboardPage() {
       .where(eq(userAchievements.userId, session.user.id))
       .orderBy(userAchievements.unlockedAt),
     getCachedAchievements(),
+    getResumeTask(session.user.id),
   ]);
 
   if (!user) redirect("/login");
+
+  // If resume parameter is present, redirect user directly to the task they left off
+  if (searchParams?.resume === "true" && resumeData?.task) {
+    redirect(`/task/${resumeData.task.id}`);
+  }
 
   const unlockedIds = userAchievementsData.map((u) => u.id);
   const unlockedAtMap = userAchievementsData.reduce((acc, curr) => {
@@ -136,14 +147,24 @@ export default async function DashboardPage() {
               </div>
 
               <div className="mt-8 flex flex-wrap items-center gap-4">
-                {currentLevel && (
+                {resumeData?.task ? (
                   <Link
-                    href={`/level/${currentLevel.id}`}
+                    href={`/task/${resumeData.task.id}`}
                     className="group inline-flex items-center gap-2 rounded-2xl bg-brand-500 px-6 py-4 text-sm font-bold text-white transition-all hover:bg-brand-600 hover:shadow-lg hover:shadow-brand-500/25 active:scale-95"
                   >
-                    Resume: {currentLevel.title}
+                    Resume Practice: {resumeData.module?.title} (Task {resumeData.position}/{resumeData.totalTasks})
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Link>
+                ) : (
+                  currentLevel && (
+                    <Link
+                      href={`/level/${currentLevel.id}`}
+                      className="group inline-flex items-center gap-2 rounded-2xl bg-brand-500 px-6 py-4 text-sm font-bold text-white transition-all hover:bg-brand-600 hover:shadow-lg hover:shadow-brand-500/25 active:scale-95"
+                    >
+                      Resume: {currentLevel.title}
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </Link>
+                  )
                 )}
                 <Link
                   href="/leaderboard"
